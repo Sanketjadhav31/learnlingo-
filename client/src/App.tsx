@@ -1,0 +1,398 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { TrackerPanel } from "./components/TrackerPanel";
+import { LessonPanel } from "./components/LessonPanel";
+import { SubmissionEditor } from "./components/SubmissionEditor";
+import { EvaluationPanel } from "./components/EvaluationPanel";
+import { Toast, type ToastType } from "./components/Toast";
+import { clearAuthToken, fetchDay, login, resetUser, setAuthToken, signup, submitDay, updateSectionProgress, verifySession } from "./lib/api";
+import type { DayContent, DayProgress, Evaluation, Tracker } from "./lib/types";
+
+export default function App() {
+  const [authUser, setAuthUser] = useState<{ userId: string; name: string; email: string } | null>(null);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
+  const [tracker, setTracker] = useState<Tracker | null>(null);
+  const [day, setDay] = useState<DayContent | null>(null);
+  const [dayProgress, setDayProgress] = useState<DayProgress | null>(null);
+  const [submission, setSubmission] = useState("");
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(null);
+
+  const header = useMemo(() => {
+    const d = day?.dayNumber ?? tracker?.day ?? 1;
+    const theme = day?.dayTheme ?? "Loading...";
+    return { d, theme };
+  }, [day, tracker]);
+
+  const canSubmit = !!day && !!submission.trim() && !submitting && !!dayProgress?.canSubmit;
+
+  async function load() {
+    if (!authUser) return;
+    console.log(`🔄 [Frontend] Loading day for user: ${authUser.userId}`);
+    setLoading(true);
+    try {
+      console.log(`📡 [Frontend] Fetching day data...`);
+      const data = await fetchDay();
+      console.log(`✓ [Frontend] Day data received:`, {
+        day: data.dayContent?.dayNumber,
+        theme: data.dayContent?.dayTheme,
+        trackerStatus: data.tracker?.finalStatus
+      });
+      setTracker(data.tracker);
+      setDay(data.dayContent);
+      setDayProgress(data.dayProgress || null);
+      // Keep user's typed submission text (don't clear on load).
+      // This prevents "empty submit work" experience when switching days.
+      setSubmission((prev) => prev);
+      // If evaluation state is lost (page refresh / day advance), restore from backend.
+      if (!evaluation && data.lastEvaluation) {
+        setEvaluation(data.lastEvaluation);
+      }
+      console.log(`✓ [Frontend] State updated successfully`);
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : "Failed to load";
+      console.error(`❌ [Frontend] Load failed:`, errorMsg);
+      showToast("error", friendlyError(errorMsg));
+    } finally {
+      setLoading(false);
+      console.log(`✓ [Frontend] Loading complete`);
+    }
+  }
+
+  useEffect(() => {
+    verifySession()
+      .then((v) => {
+        setAuthUser(v.user);
+      })
+      .catch(() => {
+        clearAuthToken();
+      })
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (authUser) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?.userId]);
+
+  function showToast(type: ToastType, message: string) {
+    setToast({ type, message });
+  }
+
+  function friendlyError(msg: string) {
+    const m = String(msg || "");
+    if (m.includes("429") || m.toLowerCase().includes("quota") || m.toLowerCase().includes("billing")) {
+      return "Gemini quota/billing is blocked (429). Enable billing in Google AI Studio for real AI feedback.";
+    }
+    if (m.length > 180) return m.slice(0, 180) + "…";
+    return m;
+  }
+
+  async function onSubmit() {
+    if (!day) return;
+    // Prevent double-click / duplicate submits before React state updates.
+    if (submittingRef.current) return;
+    console.log(`📝 [Frontend] Submitting for day ${day.dayNumber}`);
+    console.log(`📏 [Frontend] Submission length: ${submission.length} characters`);
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      console.log(`📡 [Frontend] Sending submission...`);
+      const res = await submitDay(submission);
+      console.log(`✓ [Frontend] Submission response:`, {
+        score: res.evaluation.overallPercent,
+        tier: res.evaluation.tier,
+        action: res.next.action,
+        trackerStatus: res.tracker.todayWorkStatus
+      });
+      setTracker(res.tracker);
+      setDayProgress(res.dayProgress || null);
+      setEvaluation(res.evaluation);
+      
+      // Automatically switch to evaluation tab to show results
+      setActiveTab("evaluation");
+
+      showToast(
+        "success",
+        res.next.action === "advance"
+          ? "Submitted! Day completed and progress saved."
+          : "Submitted! Evaluation ready (retry if needed)."
+      );
+      
+      // If advanced to next day, reload after showing results
+      if (res.next.action === "advance") {
+        setTimeout(() => load(), 2000);
+      } else {
+        // Reload tracker to ensure fresh data
+        setTimeout(() => load(), 500);
+      }
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : "Submit failed";
+      console.error(`❌ [Frontend] Submit failed:`, errorMsg);
+      const friendly = friendlyError(errorMsg);
+      showToast("error", friendly);
+    } finally {
+      setSubmitting(false);
+      submittingRef.current = false;
+      console.log(`✓ [Frontend] Submit process complete`);
+    }
+  }
+
+  async function onReset() {
+    console.log("🔄 [Frontend] Resetting user");
+    try {
+      console.log(`📡 [Frontend] Sending reset request...`);
+      await resetUser();
+      console.log(`✓ [Frontend] Reset successful, reloading...`);
+      showToast("success", "User progress reset successfully");
+      await load();
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : "Reset failed";
+      console.error(`❌ [Frontend] Reset failed:`, errorMsg);
+      showToast("error", friendlyError(errorMsg));
+    }
+  }
+
+  const [activeTab, setActiveTab] = useState<"progress" | "lesson" | "submission" | "evaluation">("progress");
+
+  async function onToggleSectionDone(sectionId: string, done: boolean) {
+    try {
+      const res = await updateSectionProgress(sectionId, done);
+      setDayProgress(res.dayProgress);
+    } catch (e: unknown) {
+      showToast("error", e instanceof Error ? e.message : "Failed to update progress");
+    }
+  }
+
+  async function onAuthSubmit() {
+    try {
+      const res = authMode === "signup"
+        ? await signup(authForm.name, authForm.email, authForm.password)
+        : await login(authForm.email, authForm.password);
+      setAuthToken(res.token);
+      setAuthUser(res.user);
+      setAuthForm({ name: "", email: "", password: "" });
+      showToast("success", authMode === "signup" ? "Signup successful" : "Login successful");
+    } catch (e: unknown) {
+      showToast("error", e instanceof Error ? e.message : "Authentication failed");
+    }
+  }
+
+  function onLogout() {
+    clearAuthToken();
+    setAuthUser(null);
+    setTracker(null);
+    setDay(null);
+    setDayProgress(null);
+    setSubmission("");
+    setEvaluation(null);
+  }
+
+  if (!authUser) {
+    return (
+      <div className="h-screen bg-[#0a0e1a] text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-xl border border-white/10 bg-black/30 p-6 space-y-4">
+          <div className="text-xl font-bold">{authMode === "signup" ? "Create account" : "Login"}</div>
+          {authMode === "signup" && (
+            <input value={authForm.name} onChange={(e) => setAuthForm((p) => ({ ...p, name: e.target.value }))} placeholder="Name" className="w-full rounded border border-white/20 bg-black/40 px-3 py-2" />
+          )}
+          <input value={authForm.email} onChange={(e) => setAuthForm((p) => ({ ...p, email: e.target.value }))} placeholder="Email" className="w-full rounded border border-white/20 bg-black/40 px-3 py-2" />
+          <input type="password" value={authForm.password} onChange={(e) => setAuthForm((p) => ({ ...p, password: e.target.value }))} placeholder="Password (min 8)" className="w-full rounded border border-white/20 bg-black/40 px-3 py-2" />
+          <button onClick={onAuthSubmit} className="w-full rounded bg-indigo-500 px-3 py-2 font-semibold" type="button">{authMode === "signup" ? "Signup" : "Login"}</button>
+          <button onClick={() => setAuthMode((m) => (m === "login" ? "signup" : "login"))} className="w-full text-sm text-indigo-300" type="button">
+            {authMode === "login" ? "Need an account? Signup" : "Already have an account? Login"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1629] to-[#0a0e1a] text-white flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="border-b border-white/10 bg-gradient-to-r from-black/40 via-black/30 to-black/40 backdrop-blur-xl shrink-0">
+        <div className="mx-auto max-w-7xl px-4 py-2">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20">
+                <span className="text-2xl">🎓</span>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-indigo-300/80 tracking-wide uppercase">AI Personal English Trainer</div>
+                <div className="text-xl font-bold text-white flex items-center gap-2">
+                  <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                    Day {header.d}
+                  </span>
+                  <span className="text-white/40">•</span>
+                  <span className="text-white/90">{header.theme}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm text-white/80 px-2">👤 {authUser.name}</div>
+              <button
+                onClick={load}
+                className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-2 text-sm font-medium text-white hover:bg-white/10 hover:border-white/20 transition-all duration-200 flex items-center gap-2"
+                type="button"
+              >
+                <span>🔄</span>
+                Reload
+              </button>
+              <button
+                onClick={onReset}
+                className="rounded-xl border border-rose-400/30 bg-rose-500/10 backdrop-blur-sm px-4 py-2 text-sm font-medium text-rose-100 hover:bg-rose-500/20 hover:border-rose-400/50 transition-all duration-200 flex items-center gap-2"
+                type="button"
+              >
+                <span>🔄</span>
+                Reset
+              </button>
+              <button onClick={onLogout} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm" type="button">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="border-b border-white/10 bg-black/20 backdrop-blur-sm shrink-0">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="flex gap-1">
+            {[
+              { id: "progress", icon: "📊", label: "Progress", color: "from-blue-500 to-cyan-500" },
+              { id: "lesson", icon: "📚", label: "Lesson", color: "from-indigo-500 to-purple-500" },
+              { id: "submission", icon: "✍️", label: "Submit Work", color: "from-purple-500 to-pink-500" },
+              { id: "evaluation", icon: "📈", label: "Evaluation", color: "from-emerald-500 to-teal-500" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={`relative px-6 py-3 text-sm font-semibold transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? "text-white"
+                    : "text-white/60 hover:text-white/80"
+                }`}
+                type="button"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <span className="text-base">{tab.icon}</span>
+                  {tab.label}
+                </span>
+                {activeTab === tab.id && (
+                  <div className={`absolute inset-0 bg-gradient-to-r ${tab.color} opacity-20 rounded-t-lg`} />
+                )}
+                <div
+                  className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r ${tab.color} transition-all duration-200 ${
+                    activeTab === tab.id ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-hidden min-h-0">
+        {/* Toast Notification */}
+        {toast && (
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            onClose={() => setToast(null)}
+            duration={2000}
+          />
+        )}
+        
+        <div className="mx-auto max-w-7xl px-4 py-2 h-full">
+          <div className={`h-full transition-all duration-300 ${loading ? "opacity-50" : "opacity-100"}`}>
+            {activeTab === "progress" && (
+              <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-auto">
+                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/20">
+                      <span className="text-xl">📊</span>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Progress Tracker</h2>
+                      <p className="text-sm text-white/60">Monitor your learning journey</p>
+                    </div>
+                  </div>
+                  {tracker ? <TrackerPanel tracker={tracker} dayProgress={dayProgress} /> : (
+                    <div className="text-center py-12 text-white/70">
+                      <div className="text-4xl mb-3">📊</div>
+                      <div>No progress data available</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "lesson" && (
+              <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-3 shadow-2xl h-full flex flex-col">
+                  <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
+                    {loading ? (
+                      <div className="text-center py-12">
+                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-500 border-r-transparent"></div>
+                        <div className="mt-3 text-white/70">Loading lesson...</div>
+                      </div>
+                    ) : day ? (
+                      <LessonPanel day={day} dayProgress={dayProgress} onToggleSectionDone={onToggleSectionDone} />
+                    ) : (
+                      <div className="text-center py-12 text-white/70">
+                        <div className="text-4xl mb-3">📚</div>
+                        <div>No lesson loaded</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "submission" && (
+              <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {day ? (
+                  <>
+                    <SubmissionEditor
+                      day={day}
+                      value={submission}
+                      onChange={setSubmission}
+                      onSubmit={onSubmit}
+                      submitting={submitting}
+                      canSubmit={canSubmit}
+                    />
+                    {dayProgress && !dayProgress.canSubmit && (
+                      <div className="mt-2 text-sm text-amber-300">
+                        Complete at least {dayProgress.requiredSections} sections before submitting.
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl h-full flex items-center justify-center">
+                    <div className="text-center text-white/70">
+                      <div className="text-4xl mb-3">✍️</div>
+                      <div>Load the day first to submit work</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "evaluation" && (
+              <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl h-full flex flex-col">
+                  <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
+                    <EvaluationPanel evaluation={evaluation} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

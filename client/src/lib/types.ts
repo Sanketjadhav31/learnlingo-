@@ -1,0 +1,137 @@
+export type WorkStatusValue = "Pending" | "Submitted" | "Checked";
+
+export type Tracker = {
+  day: number;
+  totalDaysCompleted: number;
+  streak: number;
+  todayWorkStatus: Record<string, WorkStatusValue>;
+  finalStatus: "Not Started" | "Waiting for Submission" | "Under Review" | "Completed" | "Failed";
+  confidenceScore: {
+    Grammar: number;
+    Speaking: number;
+    Writing: number;
+  };
+  commonMistakes: string[];
+};
+
+export type DayContent = {
+  dayNumber: number;
+  dayType: "normal" | "weekly_review";
+  dayTheme: string;
+  grammarFocus: string;
+  warmUpCorrections: { wrong: string; correct: string }[];
+  submissionTemplate: {
+    type: "normal" | "weekly_review";
+    sentenceCount: number;
+    hindiTranslationCount: number;
+    questionCount: number;
+    listeningCount: number;
+    reflectionCount: number;
+    conversationMinTurns: number;
+    vocabQuizCount?: number;
+  };
+  grammarExplanationText: string;
+  sentenceFormationText: string;
+  pronunciation: {
+    title: string;
+    words: { word: string; ipa: string; stress: string; mis: string; correct: string }[];
+    tongueTwister: string;
+  };
+  vocabAndTracks: {
+    wordOfDay: {
+      word: string;
+      pos: string;
+      definition: string;
+      example: string;
+      collocations: string[];
+      synonym: string;
+      antonym: string;
+    }[];
+    idiom: string;
+    phrasal: string;
+  };
+  listening: {
+    title: string;
+    transcript: string;
+    questions: { idx: number; prompt: string }[];
+  };
+  speakingTask: { prompt: string };
+  writingTask: { prompt: string; requiredIdiom: string; requiredPhrasal: string };
+  conversationTask: { prompt: string };
+  sentencePractice: { items: { k: number; prompt: string }[] };
+  hindiTranslation: { items: { k: number; hindiSentence: string }[] };
+  questions: { items: { idx: number; prompt: string }[] };
+  vocabQuiz?: { items: { idx: number; prompt: string }[] };
+};
+
+export type SentenceEvaluation = {
+  k: number;
+  correctness: "Correct" | "Incorrect" | "Partially Correct";
+  errorReason: string;
+  errorType?: string;
+  tip?: string;
+  original?: string;
+  correctVersion: string;
+  naturalVersion: string;
+};
+
+export type Evaluation = {
+  overallPercent: number;
+  tier: "Weak" | "Medium" | "Strong";
+  passFail: "PASS" | "FAIL";
+  motivationalMessage?: string;
+  strengths?: string[];
+  improvementFocus?: string;
+  scoreBreakdown: {
+    sentencesPercent: number;
+    writingPercent: number;
+    speakingPercent: number;
+    conversationPercent: number;
+    questionsPercent: number;
+    listeningPercent: number;
+  };
+  sentenceEvaluations: SentenceEvaluation[];
+  writing: { scorePercent: number; issues: string[]; feedback: string; improvedVersion?: string };
+  speaking: { scorePercent: number; issues: string[]; feedback: string; improvedPlan?: string };
+  conversation: { scorePercent: number; issues: string[]; feedback: string };
+  questions: { 
+    scorePercent: number; 
+    answers: { 
+      k: number; 
+      correctness: "Correct" | "Incorrect"; 
+      correctVersion?: string; 
+      errorReason?: string;
+      feedback?: string;
+    }[] 
+  };
+  listening: { scorePercent: number; answers: { k: number; correctness: "Correct" | "Incorrect"; correctVersion?: string; errorReason?: string }[] };
+  commonMistakesTop3: string[];
+  weakAreas: string[];
+  todaySummary?: {
+    topic: string;
+    levelLabel?: string;
+    dayNumber?: number;
+    keyGrammarPoints: string[];
+    keyVocabulary: { word: string; partOfSpeech: string; meaning: string; exampleUse: string }[];
+    grammarSummary: string;
+    topicNotes: string;
+    quickRecap: string[];
+    topicUsageTip?: string;
+    reviewReminder?: string;
+  };
+};
+
+export type DayProgress = {
+  dayNumber: number;
+  sectionsRead: Record<string, boolean>;
+  sectionsReadCount: number;
+  totalSections: number;
+  readPercentage: number;
+  submissionStatus: "not_started" | "submitted" | "evaluated";
+  evaluationResult: null | { overallPercent: number; tier: "Weak" | "Medium" | "Strong"; passFail: "PASS" | "FAIL" };
+  dayCompleted: boolean;
+  dayAdvanced: boolean;
+  canSubmit: boolean;
+  requiredSections: number;
+};
+
