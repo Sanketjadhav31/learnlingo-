@@ -3,6 +3,7 @@ import { Toast, type ToastType } from "./Toast";
 
 // Auth token helpers
 const AUTH_TOKEN_KEY = "english_trainer_token";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 function getToken() {
   return localStorage.getItem(AUTH_TOKEN_KEY) || "";
@@ -144,7 +145,7 @@ export function TestRoute() {
         return;
       }
 
-      const res = await fetch("/api/test", {
+      const res = await fetch(`${API_BASE_URL}/api/test`, {
         headers: authHeaders()
       });
       
@@ -179,7 +180,7 @@ export function TestRoute() {
   async function generateTest() {
     setGenerating(true);
     try {
-      const res = await fetch("/api/test/generate", {
+      const res = await fetch(`${API_BASE_URL}/api/test/generate`, {
         method: "POST",
         headers: authHeaders()
       });
@@ -229,7 +230,7 @@ export function TestRoute() {
 
     while (attempt < maxRetries && !saved) {
       try {
-        const res = await fetch("/api/test/answer", {
+        const res = await fetch(`${API_BASE_URL}/api/test/answer`, {
           method: "PATCH",
           headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ questionId, answer })
@@ -310,7 +311,7 @@ export function TestRoute() {
       
       const retryPromises = Array.from(failedSaves).map(async (questionId) => {
         try {
-          const res = await fetch("/api/test/answer", {
+          const res = await fetch(`${API_BASE_URL}/api/test/answer`, {
             method: "PATCH",
             headers: authHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify({ questionId, answer: answers[questionId] })
@@ -349,7 +350,7 @@ export function TestRoute() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/test/submit", {
+      const res = await fetch(`${API_BASE_URL}/api/test/submit`, {
         method: "POST",
         headers: authHeaders()
       });
@@ -383,7 +384,7 @@ export function TestRoute() {
   async function handleRetake() {
     setRetaking(true);
     try {
-      const res = await fetch("/api/test/retake", {
+      const res = await fetch(`${API_BASE_URL}/api/test/retake`, {
         method: "POST",
         headers: authHeaders()
       });
@@ -416,7 +417,7 @@ export function TestRoute() {
   async function handleNewTest() {
     setGenerating(true);
     try {
-      const res = await fetch("/api/test/new", {
+      const res = await fetch(`${API_BASE_URL}/api/test/new`, {
         method: "POST",
         headers: authHeaders()
       });
