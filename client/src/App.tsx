@@ -4,8 +4,15 @@ import { LessonPanel } from "./components/LessonPanel";
 import { SubmissionEditor } from "./components/SubmissionEditor";
 import { EvaluationPanel } from "./components/EvaluationPanel";
 import { Toast, type ToastType } from "./components/Toast";
+import { LoadingSpinner } from "./components/LoadingSpinner";
 import { clearAuthToken, fetchDay, login, resetUser, setAuthToken, signup, submitDay, updateSectionProgress, verifySession } from "./lib/api";
 import type { DayContent, DayProgress, Evaluation, Tracker } from "./lib/types";
+
+type LoadingState = {
+  isLoading: boolean;
+  message: string;
+  submessage?: string;
+};
 
 export default function App() {
   const [authUser, setAuthUser] = useState<{ userId: string; name: string; email: string } | null>(null);
@@ -16,7 +23,7 @@ export default function App() {
   const [dayProgress, setDayProgress] = useState<DayProgress | null>(null);
   const [submission, setSubmission] = useState("");
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingState, setLoadingState] = useState<LoadingState>({ isLoading: true, message: "Initializing..." });
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(null);
@@ -32,7 +39,7 @@ export default function App() {
   async function load() {
     if (!authUser) return;
     console.log(`🔄 [Frontend] Loading day for user: ${authUser.userId}`);
-    setLoading(true);
+    setLoadingState({ isLoading: true, message: "Loading your lesson...", submessage: "Fetching day content and progress" });
     try {
       console.log(`📡 [Frontend] Fetching day data...`);
       const data = await fetchDay();
@@ -57,12 +64,13 @@ export default function App() {
       console.error(`❌ [Frontend] Load failed:`, errorMsg);
       showToast("error", friendlyError(errorMsg));
     } finally {
-      setLoading(false);
+      setLoadingState({ isLoading: false, message: "" });
       console.log(`✓ [Frontend] Loading complete`);
     }
   }
 
   useEffect(() => {
+    setLoadingState({ isLoading: true, message: "Verifying session...", submessage: "Please wait" });
     verifySession()
       .then((v) => {
         setAuthUser(v.user);
@@ -70,7 +78,7 @@ export default function App() {
       .catch(() => {
         clearAuthToken();
       })
-      .finally(() => setLoading(false));
+      .finally(() => setLoadingState({ isLoading: false, message: "" }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -100,6 +108,11 @@ export default function App() {
     console.log(`📏 [Frontend] Submission length: ${submission.length} characters`);
     submittingRef.current = true;
     setSubmitting(true);
+    setLoadingState({ 
+      isLoading: true, 
+      message: "Evaluating your work...", 
+      submessage: "AI is analyzing your submission. This may take 30-60 seconds." 
+    });
     try {
       console.log(`📡 [Frontend] Sending submission...`);
       const res = await submitDay(submission);
@@ -125,6 +138,7 @@ export default function App() {
       
       // If advanced to next day, reload after showing results
       if (res.next.action === "advance") {
+        setLoadingState({ isLoading: true, message: "Loading next day...", submessage: "Preparing your next lesson" });
         setTimeout(() => load(), 2000);
       } else {
         // Reload tracker to ensure fresh data
@@ -138,12 +152,14 @@ export default function App() {
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
+      setLoadingState({ isLoading: false, message: "" });
       console.log(`✓ [Frontend] Submit process complete`);
     }
   }
 
   async function onReset() {
     console.log("🔄 [Frontend] Resetting user");
+    setLoadingState({ isLoading: true, message: "Resetting progress...", submessage: "This will clear all your data" });
     try {
       console.log(`📡 [Frontend] Sending reset request...`);
       await resetUser();
@@ -154,6 +170,8 @@ export default function App() {
       const errorMsg = e instanceof Error ? e.message : "Reset failed";
       console.error(`❌ [Frontend] Reset failed:`, errorMsg);
       showToast("error", friendlyError(errorMsg));
+    } finally {
+      setLoadingState({ isLoading: false, message: "" });
     }
   }
 
@@ -193,6 +211,10 @@ export default function App() {
   }
 
   if (!authUser) {
+    if (loadingState.isLoading) {
+      return <LoadingSpinner message={loadingState.message} submessage={loadingState.submessage} size="lg" fullScreen />;
+    }
+    
     return (
       <div className="h-screen bg-[#0a0e1a] text-white flex items-center justify-center p-4">
         <div className="w-full max-w-md rounded-xl border border-white/10 bg-black/30 p-6 space-y-4">
@@ -296,6 +318,19 @@ export default function App() {
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden min-h-0">
+        {/* Global Loading Overlay */}
+        {loadingState.isLoading && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-gradient-to-br from-black/80 to-black/60 border border-white/20 rounded-2xl p-8 shadow-2xl">
+              <LoadingSpinner 
+                message={loadingState.message} 
+                submessage={loadingState.submessage} 
+                size="lg" 
+              />
+            </div>
+          </div>
+        )}
+        
         {/* Toast Notification */}
         {toast && (
           <Toast
@@ -307,7 +342,7 @@ export default function App() {
         )}
         
         <div className="mx-auto max-w-7xl px-4 py-2 h-full">
-          <div className={`h-full transition-all duration-300 ${loading ? "opacity-50" : "opacity-100"}`}>
+          <div className="h-full transition-all duration-300">
             {activeTab === "progress" && (
               <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-auto">
                 <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl">
@@ -334,12 +369,7 @@ export default function App() {
               <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-3 shadow-2xl h-full flex flex-col">
                   <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
-                    {loading ? (
-                      <div className="text-center py-12">
-                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-500 border-r-transparent"></div>
-                        <div className="mt-3 text-white/70">Loading lesson...</div>
-                      </div>
-                    ) : day ? (
+                    {day ? (
                       <LessonPanel day={day} dayProgress={dayProgress} onToggleSectionDone={onToggleSectionDone} />
                     ) : (
                       <div className="text-center py-12 text-white/70">
