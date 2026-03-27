@@ -1,6 +1,7 @@
 import type { DayContent, Evaluation, Tracker } from "./types";
 
 const AUTH_TOKEN_KEY = "english_trainer_token";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 function getToken() {
   return localStorage.getItem(AUTH_TOKEN_KEY) || "";
@@ -24,7 +25,7 @@ export function clearAuthToken() {
 
 export async function fetchDay() {
   console.log("📡 [API] fetchDay called");
-  const url = "/api/day";
+  const url = `${API_BASE_URL}/api/day`;
   console.log(`📡 [API] Fetching: ${url}`);
   
   const res = await fetch(url, { headers: authHeaders() });
@@ -56,7 +57,7 @@ export async function submitDay(submissionText: string) {
     .slice(0, 80);
   console.log(`🧾 [API] Submission preview: "${preview}${submissionText.length > 80 ? "..." : ""}"`);
   
-  const url = "/api/submit";
+  const url = `${API_BASE_URL}/api/submit`;
   console.log(`📡 [API] Posting to: ${url}`);
   console.log(`🔐 [API] Auth header present: ${Boolean(getToken())}`);
   
@@ -94,7 +95,7 @@ export async function submitDay(submissionText: string) {
 }
 
 export async function updateSectionProgress(sectionId: string, done: boolean) {
-  const res = await fetch("/api/day/progress", {
+  const res = await fetch(`${API_BASE_URL}/api/day/progress`, {
     method: "PATCH",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ sectionId, done }),
@@ -106,7 +107,7 @@ export async function updateSectionProgress(sectionId: string, done: boolean) {
 
 export async function resetUser() {
   console.log("📡 [API] resetUser called");
-  const url = "/api/reset";
+  const url = `${API_BASE_URL}/api/reset`;
   console.log(`📡 [API] Posting to: ${url}`);
   
   const res = await fetch(url, { method: "POST", headers: authHeaders() });
@@ -123,7 +124,7 @@ export async function resetUser() {
 }
 
 export async function signup(name: string, email: string, password: string) {
-  const res = await fetch("/api/auth/signup", {
+  const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, email, password }),
@@ -134,7 +135,7 @@ export async function signup(name: string, email: string, password: string) {
 }
 
 export async function login(email: string, password: string) {
-  const res = await fetch("/api/auth/login", {
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -145,7 +146,7 @@ export async function login(email: string, password: string) {
 }
 
 export async function verifySession() {
-  const res = await fetch("/api/auth/verify", { headers: authHeaders() });
+  const res = await fetch(`${API_BASE_URL}/api/auth/verify`, { headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.reject?.message || "Session invalid");
   return data as { ok: true; user: { userId: string; name: string; email: string } };
