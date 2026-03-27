@@ -1,4 +1,4 @@
-import type { Tracker } from "../lib/types";
+import type { Tracker, DayProgress } from "../lib/types";
 
 function badgeClass(value: string) {
   switch (value) {
