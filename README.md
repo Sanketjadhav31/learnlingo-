@@ -1,4 +1,4 @@
-# AI Personal English Trainer
+# LearnLingo 🌐
 
 An intelligent, adaptive English learning platform powered by Google Gemini AI. Features personalized daily lessons, real-time evaluation, cumulative testing, and smart context compression for optimal learning progression.
 

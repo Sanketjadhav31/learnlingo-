@@ -1,7 +1,7 @@
 {
-  "name": "english-improve",
+  "name": "learnlingo",
   "version": "1.0.0",
-  "description": "",
+  "description": "AI-powered adaptive English learning platform with personalized lessons and cumulative testing",
   "main": "index.js",
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
