@@ -312,79 +312,98 @@ export default function App() {
     <div className="h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1629] to-[#0a0e1a] text-white flex flex-col overflow-hidden">
       {/* Header */}
       <div className="border-b border-white/10 bg-gradient-to-r from-black/40 via-black/30 to-black/40 backdrop-blur-xl shrink-0">
-        <div className="mx-auto max-w-7xl px-4 py-2">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20">
-                <span className="text-2xl">🎓</span>
-              </div>
-              <div>
-                <div className="text-xs font-medium text-indigo-300/80 tracking-wide uppercase">AI Personal English Trainer</div>
-                <div className="text-xl font-bold text-white flex items-center gap-2">
-                  <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                    Day {header.d}
-                  </span>
-                  <span className="text-white/40">•</span>
-                  <span className="text-white/90">{header.theme}</span>
+        <div className="mx-auto max-w-7xl px-2 sm:px-4 py-2">
+          <div className="flex flex-col gap-2">
+            {/* Top row - Logo, Title, User */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20 flex-shrink-0">
+                  <span className="text-xl sm:text-2xl">🎓</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[9px] sm:text-xs font-medium text-indigo-300/80 tracking-wide uppercase truncate">AI English Trainer</div>
+                  <div className="text-sm sm:text-xl font-bold text-white flex items-center gap-1 flex-wrap">
+                    <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent whitespace-nowrap">
+                      Day {header.d}
+                    </span>
+                    <span className="text-white/40 hidden xs:inline">•</span>
+                    <span className="text-white/90 text-xs sm:text-xl truncate">{header.theme}</span>
+                  </div>
                 </div>
               </div>
+              <div className="text-[10px] sm:text-sm text-white/80 px-1 whitespace-nowrap flex items-center gap-1">
+                <span className="hidden xs:inline">👤</span>
+                <span className="hidden sm:inline">{authUser.name}</span>
+                <span className="sm:hidden">{authUser.name.split(' ')[0]}</span>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="text-sm text-white/80 px-2">👤 {authUser.name}</div>
+            
+            {/* Bottom row - Action buttons in grid */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5">
               <button
                 onClick={load}
-                className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-2 text-sm font-medium text-white hover:bg-white/10 hover:border-white/20 transition-all duration-200 flex items-center gap-2"
+                className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm px-2 py-1.5 text-[10px] sm:text-sm font-medium text-white hover:bg-white/10 hover:border-white/20 transition-all duration-200 flex items-center justify-center gap-1"
                 type="button"
               >
-                <span>🔄</span>
-                Reload
+                <span className="text-sm">🔄</span>
+                <span>Reload</span>
               </button>
               <button
                 onClick={onResetToday}
-                className="rounded-xl border border-amber-400/30 bg-amber-500/10 backdrop-blur-sm px-4 py-2 text-sm font-medium text-amber-100 hover:bg-amber-500/20 hover:border-amber-400/50 transition-all duration-200 flex items-center gap-2"
+                className="rounded-lg border border-amber-400/30 bg-amber-500/10 backdrop-blur-sm px-2 py-1.5 text-[10px] sm:text-sm font-medium text-amber-100 hover:bg-amber-500/20 hover:border-amber-400/50 transition-all duration-200 flex items-center justify-center gap-1"
                 type="button"
               >
-                <span>🔄</span>
-                Reset Today
+                <span className="text-sm">🔄</span>
+                <span className="hidden xs:inline">Reset Today</span>
+                <span className="xs:hidden">Today</span>
               </button>
               <button
                 onClick={onResetAll}
-                className="rounded-xl border border-rose-400/30 bg-rose-500/10 backdrop-blur-sm px-4 py-2 text-sm font-medium text-rose-100 hover:bg-rose-500/20 hover:border-rose-400/50 transition-all duration-200 flex items-center gap-2"
+                className="rounded-lg border border-rose-400/30 bg-rose-500/10 backdrop-blur-sm px-2 py-1.5 text-[10px] sm:text-sm font-medium text-rose-100 hover:bg-rose-500/20 hover:border-rose-400/50 transition-all duration-200 flex items-center justify-center gap-1"
                 type="button"
               >
-                <span>🗑️</span>
-                Reset All
+                <span className="text-sm">🗑️</span>
+                <span className="hidden xs:inline">Reset All</span>
+                <span className="xs:hidden">All</span>
               </button>
-              <button onClick={onLogout} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm" type="button">Logout</button>
+              <button 
+                onClick={onLogout} 
+                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[10px] sm:text-sm hover:bg-white/10 transition-all flex items-center justify-center gap-1" 
+                type="button"
+              >
+                <span className="text-sm">🚪</span>
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-white/10 bg-black/20 backdrop-blur-sm shrink-0">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="flex gap-1">
+      <div className="border-b border-white/10 bg-black/20 backdrop-blur-sm shrink-0 overflow-x-auto">
+        <div className="mx-auto max-w-7xl px-2 sm:px-4">
+          <div className="flex gap-0.5 sm:gap-1 min-w-max">
             {[
               { id: "progress", icon: "📊", label: "Progress", color: "from-blue-500 to-cyan-500" },
               { id: "lesson", icon: "📚", label: "Lesson", color: "from-indigo-500 to-purple-500" },
-              { id: "submission", icon: "✍️", label: "Submit Work", color: "from-purple-500 to-pink-500" },
-              { id: "evaluation", icon: "📈", label: "Evaluation", color: "from-emerald-500 to-teal-500" },
+              { id: "submission", icon: "✍️", label: "Submit Work", shortLabel: "Submit", color: "from-purple-500 to-pink-500" },
+              { id: "evaluation", icon: "📈", label: "Evaluation", shortLabel: "Eval", color: "from-emerald-500 to-teal-500" },
               { id: "history", icon: "📜", label: "History", color: "from-amber-500 to-orange-500" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`relative px-6 py-3 text-sm font-semibold transition-all duration-200 ${
+                className={`relative px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
                   activeTab === tab.id
                     ? "text-white"
                     : "text-white/60 hover:text-white/80"
                 }`}
                 type="button"
               >
-                <span className="relative z-10 flex items-center gap-2">
-                  <span className="text-base">{tab.icon}</span>
-                  {tab.label}
+                <span className="relative z-10 flex items-center gap-1 sm:gap-2">
+                  <span className="text-sm sm:text-base">{tab.icon}</span>
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{(tab as any).shortLabel || tab.label}</span>
                 </span>
                 {activeTab === tab.id && (
                   <div className={`absolute inset-0 bg-gradient-to-r ${tab.color} opacity-20 rounded-t-lg`} />
@@ -437,24 +456,24 @@ export default function App() {
           />
         )}
         
-        <div className="mx-auto max-w-7xl px-4 py-2 h-full">
+        <div className="mx-auto max-w-7xl px-2 sm:px-4 py-2 h-full">
           <div className="h-full transition-all duration-300">
             {activeTab === "progress" && (
               <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-auto">
-                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/20">
-                      <span className="text-xl">📊</span>
+                <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-3 sm:p-6 shadow-2xl">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/20">
+                      <span className="text-lg sm:text-xl">📊</span>
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-white">Progress Tracker</h2>
-                      <p className="text-sm text-white/60">Monitor your learning journey</p>
+                      <h2 className="text-lg sm:text-xl font-bold text-white">Progress Tracker</h2>
+                      <p className="text-xs sm:text-sm text-white/60">Monitor your learning journey</p>
                     </div>
                   </div>
                   {tracker ? <TrackerPanel tracker={tracker} dayProgress={dayProgress} /> : (
-                    <div className="text-center py-12 text-white/70">
-                      <div className="text-4xl mb-3">📊</div>
-                      <div>No progress data available</div>
+                    <div className="text-center py-8 sm:py-12 text-white/70">
+                      <div className="text-3xl sm:text-4xl mb-3">📊</div>
+                      <div className="text-sm sm:text-base">No progress data available</div>
                     </div>
                   )}
                 </div>
@@ -463,14 +482,14 @@ export default function App() {
 
             {activeTab === "lesson" && (
               <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-3 shadow-2xl h-full flex flex-col">
-                  <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
+                <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-2 sm:p-3 shadow-2xl h-full flex flex-col">
+                  <div className="flex-1 overflow-auto pr-1 sm:pr-2 custom-scrollbar">
                     {day ? (
                       <LessonPanel day={day} dayProgress={dayProgress} onToggleSectionDone={onToggleSectionDone} />
                     ) : (
-                      <div className="text-center py-12 text-white/70">
-                        <div className="text-4xl mb-3">📚</div>
-                        <div>No lesson loaded</div>
+                      <div className="text-center py-8 sm:py-12 text-white/70">
+                        <div className="text-3xl sm:text-4xl mb-3">📚</div>
+                        <div className="text-sm sm:text-base">No lesson loaded</div>
                       </div>
                     )}
                   </div>
@@ -492,16 +511,16 @@ export default function App() {
                       isDraftLoaded={isDraftLoaded}
                     />
                     {dayProgress && !dayProgress.canSubmit && (
-                      <div className="mt-2 text-sm text-amber-300">
+                      <div className="mt-2 text-xs sm:text-sm text-amber-300 px-2">
                         Complete at least {dayProgress.requiredSections} sections before submitting.
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl h-full flex items-center justify-center">
+                  <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-4 sm:p-6 shadow-2xl h-full flex items-center justify-center">
                     <div className="text-center text-white/70">
-                      <div className="text-4xl mb-3">✍️</div>
-                      <div>Load the day first to submit work</div>
+                      <div className="text-3xl sm:text-4xl mb-3">✍️</div>
+                      <div className="text-sm sm:text-base">Load the day first to submit work</div>
                     </div>
                   </div>
                 )}
@@ -510,8 +529,8 @@ export default function App() {
 
             {activeTab === "evaluation" && (
               <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl h-full flex flex-col">
-                  <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
+                <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-3 sm:p-6 shadow-2xl h-full flex flex-col">
+                  <div className="flex-1 overflow-auto pr-1 sm:pr-2 custom-scrollbar">
                     <EvaluationPanel evaluation={evaluation} />
                   </div>
                 </div>
@@ -520,8 +539,8 @@ export default function App() {
 
             {activeTab === "history" && (
               <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl h-full flex flex-col">
-                  <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
+                <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-3 sm:p-6 shadow-2xl h-full flex flex-col">
+                  <div className="flex-1 overflow-auto pr-1 sm:pr-2 custom-scrollbar">
                     <HistoryPanel />
                   </div>
                 </div>

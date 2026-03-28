@@ -87,51 +87,42 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
         </div>
       )}
       
-      {/* Overall Result Card - Everything Horizontal */}
-      <div className="rounded-lg border border-white/10 bg-gradient-to-br from-indigo-500/20 to-purple-500/10 p-3">
-        <div className="flex items-center gap-3 overflow-x-auto scrollbar-thin pb-1">
-          {/* Overall Result Label */}
-          <div className="flex-shrink-0 flex items-center gap-2">
-            <div className="text-xs text-white/70">Overall Result</div>
+      {/* Overall Result Card - Stack vertically on mobile */}
+      <div className="rounded-lg border border-white/10 bg-gradient-to-br from-indigo-500/20 to-purple-500/10 p-2 sm:p-3">
+        {/* Top row - badges and score */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="text-[10px] sm:text-xs text-white/70">Overall</div>
             <span className={cn(
-              "px-2 py-0.5 rounded text-xs font-bold",
+              "px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold",
               evaluation.passFail === "PASS" ? "bg-emerald-500/20 text-emerald-200" : "bg-rose-500/20 text-rose-200"
             )}>
               {evaluation.passFail}
             </span>
-            <span className="px-2 py-0.5 rounded text-xs bg-purple-500/20 text-purple-200">
-              Tier {evaluation.tier}
+            <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs bg-purple-500/20 text-purple-200">
+              {evaluation.tier}
             </span>
           </div>
+          <div className="text-xl sm:text-2xl font-bold text-white">{Math.round(evaluation.overallPercent)}%</div>
+        </div>
 
-          {/* Divider */}
-          <div className="h-8 w-px bg-white/10 flex-shrink-0"></div>
-
-          {/* Overall Score */}
-          <div className="flex-shrink-0 text-center">
-            <div className="text-xs text-white/60">Score</div>
-            <div className="text-xl font-bold text-white">{Math.round(evaluation.overallPercent)}%</div>
+        {/* Score Cards Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
+          <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
+            <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Grammar</div>
+            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.scoreBreakdown.sentencesPercent)}%</div>
           </div>
-
-          {/* Divider */}
-          <div className="h-8 w-px bg-white/10 flex-shrink-0"></div>
-
-          {/* Score Cards - All Horizontal */}
-          <div className="flex-shrink-0 rounded-lg border border-white/10 bg-black/20 p-2 text-center min-w-[85px]">
-            <div className="text-xs text-white/60">Grammar</div>
-            <div className="text-lg font-semibold text-white">{Math.round(evaluation.scoreBreakdown.sentencesPercent)}%</div>
+          <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
+            <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Writing</div>
+            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.writing.scorePercent)}%</div>
           </div>
-          <div className="flex-shrink-0 rounded-lg border border-white/10 bg-black/20 p-2 text-center min-w-[85px]">
-            <div className="text-xs text-white/60">Writing</div>
-            <div className="text-lg font-semibold text-white">{Math.round(evaluation.writing.scorePercent)}%</div>
+          <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
+            <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Speaking</div>
+            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.speaking.scorePercent)}%</div>
           </div>
-          <div className="flex-shrink-0 rounded-lg border border-white/10 bg-black/20 p-2 text-center min-w-[85px]">
-            <div className="text-xs text-white/60">Speaking</div>
-            <div className="text-lg font-semibold text-white">{Math.round(evaluation.speaking.scorePercent)}%</div>
-          </div>
-          <div className="flex-shrink-0 rounded-lg border border-white/10 bg-black/20 p-2 text-center min-w-[85px]">
-            <div className="text-xs text-white/60">Conversation</div>
-            <div className="text-lg font-semibold text-white">{Math.round(evaluation.conversation.scorePercent)}%</div>
+          <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
+            <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Conversation</div>
+            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.conversation.scorePercent)}%</div>
           </div>
         </div>
 
@@ -183,14 +174,14 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
       )}
 
       {/* Horizontal Section Tabs */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
+      <div className="flex gap-1 overflow-x-auto pb-2" style={{scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.3) transparent'}}>
         {EVAL_SECTIONS.map(([id, label]) => (
           <button
             key={id}
             onClick={() => setActiveSection(id)}
-            className={`rounded-lg border px-4 py-2 text-sm whitespace-nowrap flex-shrink-0 min-w-[160px] ${
+            className={`rounded-lg border px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs whitespace-nowrap flex-shrink-0 ${
               activeSection === id 
-                ? "border-indigo-400/60 bg-indigo-500/20 text-white" 
+                ? "border-indigo-400/60 bg-indigo-500/20 text-white font-semibold" 
                 : "border-white/10 bg-white/5 text-white/80"
             }`}
             type="button"
@@ -201,7 +192,7 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
       </div>
 
       {/* Section Content */}
-      <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+      <div className="rounded-lg border border-white/10 bg-black/20 p-3 sm:p-4">
         {activeSection === "writing" && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-3">
@@ -428,21 +419,21 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
 
         {activeSection === "sentences" && (
           <>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">📝</span>
-                <div className="text-sm font-semibold text-white/90">Sentence Corrections</div>
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="text-base sm:text-lg">📝</span>
+                <div className="text-xs sm:text-sm font-semibold text-white/90">Sentence Corrections</div>
               </div>
               
               {/* Filter buttons on the right */}
-              <div className="flex gap-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-shrink-0">
                 {(["All", "Correct", "Partial", "Incorrect"] as Tab[]).map((t) => (
                   <button
                     key={t}
                     type="button"
                     onClick={() => setTab(t)}
                     className={cn(
-                      "rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors whitespace-nowrap",
+                      "rounded border px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-xs font-semibold transition-colors whitespace-nowrap",
                       tab === t ? "border-indigo-400/50 bg-indigo-400/15 text-indigo-100" : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
                     )}
                   >

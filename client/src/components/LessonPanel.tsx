@@ -148,44 +148,55 @@ export function LessonPanel({
 
   return (
     <div className="space-y-2">
-      <div className="sticky top-0 z-10 bg-[#0a0e1a] pb-2 flex gap-3 items-center">
-        <div className="flex gap-2 overflow-x-auto scrollbar-thin flex-1">
+      {/* Compact header with progress */}
+      <div className="sticky top-0 z-10 bg-[#0a0e1a] pb-2">
+        {/* Progress card - more compact */}
+        <div className="rounded-lg border border-white/10 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 p-2 mb-2">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="text-[10px] sm:text-xs text-white/70 truncate flex-1">
+              Day {day.dayNumber} - {day.dayTheme}
+            </div>
+            <div className="flex items-center gap-2 text-[10px] sm:text-xs text-white/60 flex-shrink-0">
+              <span className="font-semibold">{doneCount}/8</span>
+              <span className="text-white/40">|</span>
+              <span>Unlock: {doneCount}/{dayProgress?.requiredSections || 5}</span>
+            </div>
+          </div>
+          <div className="h-1.5 rounded-full bg-white/10">
+            <div className="h-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300" style={{ width: `${progressPct}%` }} />
+          </div>
+        </div>
+        
+        {/* Section tabs - horizontal scroll */}
+        <div className="flex gap-1 overflow-x-auto scrollbar-thin pb-2">
           {SECTIONS.map(([id, label], idx) => (
             <button
               key={id}
               onClick={() => setOpenSection(id)}
               className={cn(
-                "rounded-lg border px-3 py-2 text-sm whitespace-nowrap flex-shrink-0",
-                openSection === id ? "border-indigo-400/60 bg-indigo-500/20 text-white" : doneMap[id] ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100" : "border-white/10 bg-white/5 text-white/80"
+                "rounded-lg border px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs whitespace-nowrap flex-shrink-0 transition-all",
+                openSection === id 
+                  ? "border-indigo-400/60 bg-indigo-500/20 text-white font-semibold" 
+                  : doneMap[id] 
+                    ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200" 
+                    : "border-white/10 bg-white/5 text-white/70"
               )}
               type="button"
             >
-              {doneMap[id] ? "✓" : idx + 1}. {label}
+              <span className="inline sm:hidden">{doneMap[id] ? "✓" : idx + 1}</span>
+              <span className="hidden sm:inline">{doneMap[id] ? "✓" : idx + 1}. {label}</span>
             </button>
           ))}
         </div>
-        
-        <div className="rounded-lg border border-white/10 bg-black/20 p-2 flex-shrink-0 min-w-[240px]">
-          <div className="text-[10px] text-white/70 mb-0.5 truncate">
-            Day {day.dayNumber} - {day.dayTheme}
-          </div>
-          <div className="h-1 rounded bg-white/10 mb-0.5">
-            <div className="h-1 rounded bg-indigo-500" style={{ width: `${progressPct}%` }} />
-          </div>
-          <div className="flex justify-between text-[10px] text-white/60">
-            <span>{doneCount}/8</span>
-            <span>Unlock: {doneCount}/{dayProgress?.requiredSections || 5}</span>
-          </div>
-        </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-sm font-semibold text-white capitalize">{openSection}</div>
+      <div className="rounded-lg sm:rounded-xl border border-white/10 bg-black/20 p-3 sm:p-4">
+        <div className="mb-2 sm:mb-3 flex items-center justify-between gap-2">
+          <div className="text-xs sm:text-sm font-semibold text-white capitalize">{openSection}</div>
           <button
             type="button"
             onClick={() => onToggleSectionDone(openSection, !doneMap[openSection])}
-            className="rounded border border-white/20 px-3 py-1 text-xs text-white"
+            className="rounded border border-white/20 px-2 sm:px-3 py-1 text-[10px] sm:text-xs text-white hover:bg-white/10 transition-colors"
           >
             {doneMap[openSection] ? "✓ Done" : "Mark Done"}
           </button>

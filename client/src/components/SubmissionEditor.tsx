@@ -298,36 +298,37 @@ export function SubmissionEditor(props: {
   if (mode === "text") {
     return (
       <div className="h-full flex flex-col gap-1">
-        <div className="rounded-lg border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-sm px-3 py-1.5 shadow-lg shrink-0">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-white">Text Mode</span>
-              {isSaving && <span className="text-xs text-white/50">💾 Saving...</span>}
+        <div className="rounded-lg border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-sm px-2 sm:px-3 py-1.5 shadow-lg shrink-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="text-xs sm:text-sm font-semibold text-white">Text Mode</span>
+              {isSaving && <span className="text-[10px] sm:text-xs text-white/50">💾</span>}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 type="button"
                 onClick={() => setMode("form")}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white hover:bg-white/10 hover:border-white/20 transition-all duration-200 flex items-center gap-1.5"
+                className="rounded-lg border border-white/10 bg-white/5 px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium text-white hover:bg-white/10 hover:border-white/20 transition-all duration-200 flex items-center gap-1"
               >
                 <span>📋</span>
-                Form Mode
+                <span className="hidden sm:inline">Form Mode</span>
               </button>
               <button
                 type="button"
                 disabled={!props.canSubmit || props.submitting}
                 onClick={props.onSubmit}
-                className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-3 py-1 text-xs font-semibold text-white hover:from-indigo-400 hover:to-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-500/20 flex items-center gap-1.5"
+                className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold text-white hover:from-indigo-400 hover:to-purple-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-500/20 flex items-center gap-1"
               >
                 {props.submitting ? (
                   <>
-                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Submitting...
+                    <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    <span className="hidden sm:inline">Submitting...</span>
                   </>
                 ) : (
                   <>
                     <span>✨</span>
-                    Submit Work
+                    <span className="hidden sm:inline">Submit Work</span>
+                    <span className="sm:hidden">Submit</span>
                   </>
                 )}
               </button>
@@ -338,7 +339,7 @@ export function SubmissionEditor(props: {
           <textarea
             value={props.value}
             onChange={(e) => props.onChange(e.target.value)}
-            className="w-full h-full resize-none bg-transparent p-6 font-mono text-base leading-relaxed text-white/90 outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-400/40 placeholder:text-white/30 overflow-y-auto"
+            className="w-full h-full resize-none bg-transparent p-3 sm:p-6 font-mono text-xs sm:text-base leading-relaxed text-white/90 outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-400/40 placeholder:text-white/30 overflow-y-auto custom-scrollbar"
             placeholder="Fill the template and submit your work here..."
             spellCheck={false}
           />
@@ -349,27 +350,27 @@ export function SubmissionEditor(props: {
 
   return (
     <div className="h-full flex flex-col gap-2">
-      <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-sm p-3 shadow-lg shrink-0">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-lg">📋</span>
+      <div className="rounded-lg sm:rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-sm p-2 sm:p-3 shadow-lg shrink-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+            <span className="text-base sm:text-lg">📋</span>
             <span className="font-semibold text-white">Form Mode</span>
-            {isSaving && <span className="text-xs text-white/50">💾 Saving...</span>}
+            {isSaving && <span className="text-[10px] sm:text-xs text-white/50">💾</span>}
           </div>
           
           {!props.canSubmit ? (
-            <div className="flex-1 text-sm text-amber-200 bg-amber-500/10 border border-amber-400/30 rounded px-4 py-2 mx-4">
+            <div className="flex-1 text-[10px] sm:text-sm text-amber-200 bg-amber-500/10 border border-amber-400/30 rounded px-2 sm:px-4 py-1.5 sm:py-2">
               <span className="font-semibold">📚 Complete more sections:</span> You need to complete at least {props.day.submissionTemplate.type === "normal" ? 5 : 6} lesson sections before you can submit. Go to Lesson tab.
             </div>
           ) : (
             <div className="flex-1" />
           )}
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setMode("text")}
-              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 min-w-[120px]"
+              className="flex-1 sm:flex-none rounded-lg border border-white/10 bg-white/5 px-2 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-sm font-medium text-white hover:bg-white/10 sm:min-w-[120px]"
             >
               📝 Text Mode
             </button>
@@ -377,7 +378,7 @@ export function SubmissionEditor(props: {
               type="button"
               disabled={!props.canSubmit || props.submitting}
               onClick={props.onSubmit}
-              className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white hover:from-indigo-400 hover:to-purple-400 disabled:opacity-50 min-w-[130px]"
+              className="flex-1 sm:flex-none rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-2 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-sm font-semibold text-white hover:from-indigo-400 hover:to-purple-400 disabled:opacity-50 sm:min-w-[130px]"
             >
               {props.submitting ? "⏳ Submitting..." : "✨ Submit Work"}
             </button>
@@ -385,14 +386,14 @@ export function SubmissionEditor(props: {
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1">
+      <div className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-thin pb-2">
         {SUBMISSION_SECTIONS.map(([id, label]) => (
           <button
             key={id}
             onClick={() => setActiveSection(id)}
-            className={`rounded-lg border px-6 py-2 text-sm whitespace-nowrap flex-shrink-0 min-w-[160px] ${
+            className={`rounded-lg border px-3 sm:px-6 py-1.5 sm:py-2 text-[10px] sm:text-sm whitespace-nowrap flex-shrink-0 ${
               activeSection === id 
-                ? "border-indigo-400/60 bg-indigo-500/20 text-white" 
+                ? "border-indigo-400/60 bg-indigo-500/20 text-white font-semibold" 
                 : "border-white/10 bg-white/5 text-white/80"
             }`}
             type="button"
@@ -402,7 +403,7 @@ export function SubmissionEditor(props: {
         ))}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto pr-2 custom-scrollbar">
+      <div className="flex-1 min-h-0 overflow-auto pr-1 sm:pr-2 custom-scrollbar">
         <div className="rounded-lg border border-white/10 bg-black/10 p-4">
           {activeSection === "writing" && (
             <div className="space-y-2">
