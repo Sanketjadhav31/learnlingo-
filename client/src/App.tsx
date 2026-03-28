@@ -22,6 +22,7 @@ export default function App() {
   const [day, setDay] = useState<DayContent | null>(null);
   const [dayProgress, setDayProgress] = useState<DayProgress | null>(null);
   const [submission, setSubmission] = useState("");
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>({ isLoading: true, message: "Initializing..." });
   const [submitting, setSubmitting] = useState(false);
@@ -51,9 +52,20 @@ export default function App() {
       setTracker(data.tracker);
       setDay(data.dayContent);
       setDayProgress(data.dayProgress || null);
-      // Keep user's typed submission text (don't clear on load).
-      // This prevents "empty submit work" experience when switching days.
-      setSubmission((prev) => prev);
+      // Load saved draft if available
+      console.log(`💾 [Frontend] Draft received:`, {
+        hasDraft: !!data.submissionDraft,
+        length: data.submissionDraft?.length || 0,
+        preview: data.submissionDraft?.substring(0, 100) || 'empty'
+      });
+      if (data.submissionDraft && data.submissionDraft.trim().length > 0) {
+        console.log(`💾 [Frontend] Loading saved draft (${data.submissionDraft.length} chars)`);
+        setSubmission(data.submissionDraft);
+        setIsDraftLoaded(true);
+      } else {
+        console.log(`💾 [Frontend] No draft to load, marking as loaded`);
+        setIsDraftLoaded(true); // Mark as loaded even if empty
+      }
       // If evaluation state is lost (page refresh / day advance), restore from backend.
       if (!evaluation && data.lastEvaluation) {
         setEvaluation(data.lastEvaluation);
@@ -393,6 +405,7 @@ export default function App() {
                       onSubmit={onSubmit}
                       submitting={submitting}
                       canSubmit={canSubmit}
+                      isDraftLoaded={isDraftLoaded}
                     />
                     {dayProgress && !dayProgress.canSubmit && (
                       <div className="mt-2 text-sm text-amber-300">

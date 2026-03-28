@@ -42,6 +42,7 @@ const UserStateSchema = new mongoose.Schema(
     lastSubmissionParsed: { type: mongoose.Schema.Types.Mixed, default: null },
     lastEvaluation: { type: mongoose.Schema.Types.Mixed, default: null },
     currentTest: { type: mongoose.Schema.Types.Mixed, default: null },
+    submissionDraft: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
   { timestamps: true }
 );

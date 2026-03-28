@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { DayContent } from "../lib/types";
+import { saveDraft } from "../lib/api";
 
 // Helper function to format prompt text - convert markdown to styled spans
 function formatPromptText(text: string): React.ReactNode {
@@ -76,16 +77,19 @@ function parseSubmission(text: string, day: DayContent): SubmissionData {
     } else if (trimmed.startsWith("4. Sentence Practice")) {
       section = "sentences";
       itemIndex = 0;
-    } else if (trimmed.startsWith("5. Questions:")) {
+    } else if (trimmed.startsWith("5. Hindi to English Translation")) {
+      section = "hindiTranslation";
+      itemIndex = 0;
+    } else if (trimmed.startsWith("6. Questions:")) {
       section = "questions";
       itemIndex = 0;
-    } else if (trimmed.startsWith("6. Listening Comprehension:")) {
+    } else if (trimmed.startsWith("7. Listening Comprehension:")) {
       section = "listening";
       itemIndex = 0;
-    } else if (trimmed.startsWith("7. Vocabulary Quiz:")) {
+    } else if (trimmed.startsWith("8. Vocabulary Quiz:")) {
       section = "vocabQuiz";
       itemIndex = 0;
-    } else if (trimmed.startsWith("7. Reflection") || trimmed.startsWith("8. Reflection")) {
+    } else if (trimmed.startsWith("8. Reflection") || trimmed.startsWith("9. Reflection")) {
       section = "reflection";
       itemIndex = 0;
     } else if (trimmed) {
@@ -139,33 +143,39 @@ function buildSubmissionText(data: SubmissionData, day: DayContent): string {
     .filter(s => s);
   text += `4. Sentence Practice:\n${sentenceLines.join("\n")}\n\n`;
   
+  // Hindi Translation - only include non-empty ones
+  const hindiLines = data.hindiTranslation
+    .map((h, i) => h && h.trim() ? `${i + 1}. ${h}` : "")
+    .filter(h => h);
+  text += `5. Hindi to English Translation:\n${hindiLines.join("\n")}\n\n`;
+  
   // Questions - only include non-empty ones
   const questionLines = data.questions
     .map((q, i) => q && q.trim() ? `${i + 1}. ${q}` : "")
     .filter(q => q);
-  text += `5. Questions:\n${questionLines.join("\n")}\n\n`;
+  text += `6. Questions:\n${questionLines.join("\n")}\n\n`;
   
   // Listening - only include non-empty ones
   const listeningLines = data.listening
     .map((l, i) => l && l.trim() ? `${i + 1}. ${l}` : "")
     .filter(l => l);
-  text += `6. Listening Comprehension:\n${listeningLines.join("\n")}\n\n`;
+  text += `7. Listening Comprehension:\n${listeningLines.join("\n")}\n\n`;
   
   if (day.dayType === "weekly_review" && data.vocabQuiz) {
     const vocabLines = data.vocabQuiz
       .map((v, i) => v && v.trim() ? `${i + 1}. ${v}` : "")
       .filter(v => v);
-    text += `7. Vocabulary Quiz:\n${vocabLines.join("\n")}\n\n`;
+    text += `8. Vocabulary Quiz:\n${vocabLines.join("\n")}\n\n`;
     
     const reflectionLines = data.reflection
       .map((r, i) => r && r.trim() ? `${i + 1}. ${r}` : "")
       .filter(r => r);
-    text += `8. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
+    text += `9. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
   } else {
     const reflectionLines = data.reflection
       .map((r, i) => r && r.trim() ? `${i + 1}. ${r}` : "")
       .filter(r => r);
-    text += `7. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
+    text += `8. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
   }
 
   return text;
@@ -178,43 +188,83 @@ export function SubmissionEditor(props: {
   onSubmit: () => void;
   submitting: boolean;
   canSubmit: boolean;
+  isDraftLoaded: boolean;
 }) {
   const [mode, setMode] = useState<"form" | "text">("form");
   const [formData, setFormData] = useState<SubmissionData>(() => parseSubmission(props.value, props.day));
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<number | null>(null);
+
+  // Auto-save draft with debounce
+  const autoSaveDraft = useCallback((text: string) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (text.trim().length > 0) {
+        setIsSaving(true);
+        try {
+          await saveDraft(text);
+          console.log("💾 Draft auto-saved");
+        } catch (error) {
+          console.error("Failed to save draft:", error);
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    }, 2000); // Save after 2 seconds of inactivity
+  }, []);
 
   useEffect(() => {
-    if (!props.value.trim()) {
-      const emptyData: SubmissionData = {
-        writing: "",
-        speaking: "",
-        conversation: [],
-        sentences: Array(props.day.submissionTemplate.sentenceCount).fill(""),
-        hindiTranslation: Array(20).fill(""),
-        questions: Array(props.day.submissionTemplate.questionCount).fill(""),
-        listening: Array(props.day.submissionTemplate.listeningCount).fill(""),
-        reflection: Array(props.day.submissionTemplate.reflectionCount).fill(""),
-      };
-      if (props.day.dayType === "weekly_review" && props.day.submissionTemplate.vocabQuizCount) {
-        emptyData.vocabQuiz = Array(props.day.submissionTemplate.vocabQuizCount).fill("");
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
-      setFormData(emptyData);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Only initialize empty data if draft hasn't been loaded yet and value is empty
+    if (!props.isDraftLoaded || props.value.trim()) {
+      return; // Don't initialize if draft is loading or already has content
+    }
+    
+    const emptyData: SubmissionData = {
+      writing: "",
+      speaking: "",
+      conversation: [],
+      sentences: Array(props.day.submissionTemplate.sentenceCount).fill(""),
+      hindiTranslation: Array(20).fill(""),
+      questions: Array(props.day.submissionTemplate.questionCount).fill(""),
+      listening: Array(props.day.submissionTemplate.listeningCount).fill(""),
+      reflection: Array(props.day.submissionTemplate.reflectionCount).fill(""),
+    };
+    if (props.day.dayType === "weekly_review" && props.day.submissionTemplate.vocabQuizCount) {
+      emptyData.vocabQuiz = Array(props.day.submissionTemplate.vocabQuizCount).fill("");
+    }
+    setFormData(emptyData);
+    // Only generate empty text if we're in form mode
+    if (mode === "form") {
       const newText = buildSubmissionText(emptyData, props.day);
       props.onChange(newText);
     }
-  }, [props.day.dayNumber]);
+  }, [props.isDraftLoaded, props.day.dayNumber]); // Run when draft is loaded or day changes
 
   useEffect(() => {
     if (mode === "form") {
       const newText = buildSubmissionText(formData, props.day);
       props.onChange(newText);
+      autoSaveDraft(newText);
     }
-  }, [formData, mode, props.day]);
+  }, [formData, mode, props.day, autoSaveDraft]);
 
   useEffect(() => {
     if (mode === "text") {
       setFormData(parseSubmission(props.value, props.day));
+      autoSaveDraft(props.value);
     }
-  }, [props.value, mode, props.day]);
+  }, [props.value, mode, props.day, autoSaveDraft]);
 
   const template = props.day.submissionTemplate;
   const conversationTurns = Array.from({ length: template.conversationMinTurns }, (_, i) => 
@@ -252,6 +302,7 @@ export function SubmissionEditor(props: {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-white">Text Mode</span>
+              {isSaving && <span className="text-xs text-white/50">💾 Saving...</span>}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -303,6 +354,7 @@ export function SubmissionEditor(props: {
           <div className="flex items-center gap-2 text-sm">
             <span className="text-lg">📋</span>
             <span className="font-semibold text-white">Form Mode</span>
+            {isSaving && <span className="text-xs text-white/50">💾 Saving...</span>}
           </div>
           
           {!props.canSubmit ? (

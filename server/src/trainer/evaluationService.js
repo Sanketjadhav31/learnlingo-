@@ -37,6 +37,9 @@ function extractStrongAreas(src, scoreBreakdown) {
   if (scoreBreakdown.listeningPercent >= 80) {
     strongAreas.push("Listening comprehension");
   }
+  if (scoreBreakdown.hindiTranslationPercent >= 80) {
+    strongAreas.push("Translation skills");
+  }
   
   // Also check for explicit strengths in the source
   if (src.strengths && Array.isArray(src.strengths)) {
@@ -355,6 +358,9 @@ function normalizeEvaluationShape(input) {
   const sentencesPercent = sentenceEvaluations.length ? Math.round((correctCount(sentenceEvaluations) / sentenceEvaluations.length) * 100) : 0;
   const questionsPercent = questionAnswers.length ? Math.round((correctCount(questionAnswers) / questionAnswers.length) * 100) : 0;
   const listeningPercent = listeningAnswers.length ? Math.round((correctCount(listeningAnswers) / listeningAnswers.length) * 100) : 0;
+  
+  const hindiAnswers = asArray(src.hindiTranslation?.answers ?? src.hindiTranslationAnswers ?? []);
+  const hindiTranslationPercent = hindiAnswers.length ? Math.round((correctCount(hindiAnswers) / hindiAnswers.length) * 100) : 0;
 
   const writingPercent = toPercent(writingNode.scorePercent ?? writingNode.score ?? breakdownNode.writingPercent, sentencesPercent);
   const speakingPercent = toPercent(speakingNode.scorePercent ?? speakingNode.score ?? breakdownNode.speakingPercent, sentencesPercent);
@@ -364,7 +370,7 @@ function normalizeEvaluationShape(input) {
     src.overallScore ??
     src.overall_score ??
     src.overallPercentage ??
-    Math.round((sentencesPercent + writingPercent + speakingPercent + conversationPercent + questionsPercent + listeningPercent) / 6);
+    Math.round((sentencesPercent * 0.25 + hindiTranslationPercent * 0.10 + writingPercent * 0.20 + speakingPercent * 0.15 + conversationPercent * 0.15 + questionsPercent * 0.08 + listeningPercent * 0.07) * 100) / 100;
   const overallPercent = toPercent(computedOverall, 0);
   const passFailRaw = String(src.passFail ?? src.pass_fail ?? src.result ?? (overallPercent >= 76 ? "PASS" : "FAIL")).toUpperCase();
   const passFail = passFailRaw.includes("PASS") ? "PASS" : "FAIL";
@@ -402,6 +408,7 @@ function normalizeEvaluationShape(input) {
     improvementFocus: src.improvementFocus ? String(src.improvementFocus) : undefined,
     scoreBreakdown: {
       sentencesPercent,
+      hindiTranslationPercent,
       writingPercent,
       speakingPercent,
       conversationPercent,
@@ -457,6 +464,14 @@ function normalizeEvaluationShape(input) {
     listening: {
       scorePercent: listeningPercent,
       answers: listeningAnswers,
+    },
+    hindiTranslation: {
+      scorePercent: hindiTranslationPercent,
+      answers: hindiAnswers.map((a) => ({
+        k: Number(a.k ?? a.idx ?? a.index ?? 0),
+        correctness: String(a.correctness ?? "Incorrect"),
+        feedback: String(a.feedback ?? a.comment ?? "—"),
+      })),
     },
     vocabQuiz: vocabAnswers.length
       ? {

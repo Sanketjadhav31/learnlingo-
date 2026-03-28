@@ -125,9 +125,10 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     { key: "speaking", label: "2. Speaking Task:" },
     { key: "conversation", label: "3. Conversation Practice:" },
     { key: "sentences", label: "4. Sentence Practice:" },
-    { key: "questions", label: "5. Questions:" },
-    { key: "listening", label: "6. Listening Comprehension:" },
-    { key: "reflection", label: "7. Reflection (required, not graded):" },
+    { key: "hindiTranslation", label: "5. Hindi to English Translation:" },
+    { key: "questions", label: "6. Questions:" },
+    { key: "listening", label: "7. Listening Comprehension:" },
+    { key: "reflection", label: "8. Reflection (required, not graded):" },
   ];
 
   const labelsWeekly = [
@@ -135,10 +136,11 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     { key: "speaking", label: "2. Speaking Task:" },
     { key: "conversation", label: "3. Conversation Practice:" },
     { key: "sentences", label: "4. Sentence Practice (30):" },
-    { key: "questions", label: "5. Questions:" },
-    { key: "listening", label: "6. Listening Comprehension:" },
-    { key: "vocabQuiz", label: "7. Vocabulary Quiz:" },
-    { key: "reflection", label: "8. Reflection (required, not graded):" },
+    { key: "hindiTranslation", label: "5. Hindi to English Translation:" },
+    { key: "questions", label: "6. Questions:" },
+    { key: "listening", label: "7. Listening Comprehension:" },
+    { key: "vocabQuiz", label: "8. Vocabulary Quiz:" },
+    { key: "reflection", label: "9. Reflection (required, not graded):" },
   ];
 
   const labels = dayContent.dayType === "weekly_review" ? labelsWeekly : labelsNormal;
@@ -186,7 +188,7 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
   }
 
   const sentenceStart = labelIndices.sentences + 1;
-  const sentenceEnd = labelIndices.questions;
+  const sentenceEnd = labelIndices.hindiTranslation;
   const sentenceCount = expected.sentenceCount;
   console.log(`    🔍 Validating ${sentenceCount} sentences...`);
   const sentenceBlock = parseNumberedListBlock(lines, sentenceStart, sentenceEnd);
@@ -211,6 +213,29 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     return { ok: false, reason: "Too many repeated sentences. Please provide unique answers.", details: [] };
   }
   console.log(`    ✓ All ${sentenceCount} sentences valid`);
+
+  const hindiStart = labelIndices.hindiTranslation + 1;
+  const hindiEnd = labelIndices.questions;
+  const hindiCount = 20;
+  console.log(`    🔍 Validating ${hindiCount} Hindi translations...`);
+  const hindiBlock = parseNumberedListBlock(lines, hindiStart, hindiEnd);
+  if (hindiBlock.extraNonEmptyLines.length) {
+    return {
+      ok: false,
+      reason: `Hindi to English Translation has unexpected non-empty lines.`,
+      details: hindiBlock.extraNonEmptyLines.slice(0, 5).map((x) => x.line),
+    };
+  }
+  for (let n = 1; n <= hindiCount; n++) {
+    const v = hindiBlock.itemsByNum.get(n);
+    if (v === undefined || !String(v).trim() || String(v).trim() === "-") {
+      return { ok: false, reason: `Hindi translation ${n} is empty/invalid.`, details: [] };
+    }
+    if (countWords(v) < 2) {
+      return { ok: false, reason: `Hindi translation ${n} must be at least 3 words.`, details: [] };
+    }
+  }
+  console.log(`    ✓ All ${hindiCount} Hindi translations valid`);
 
   const questionStart = labelIndices.questions + 1;
   const questionEnd = labelIndices.listening;
@@ -316,6 +341,10 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     sentencePractice: Array.from({ length: sentenceCount }, (_, i) => ({
       k: i + 1,
       text: sentenceBlock.itemsByNum.get(i + 1),
+    })),
+    hindiTranslation: Array.from({ length: hindiCount }, (_, i) => ({
+      k: i + 1,
+      text: hindiBlock.itemsByNum.get(i + 1),
     })),
     questions: Array.from({ length: questionCount }, (_, i) => ({
       k: i + 1,

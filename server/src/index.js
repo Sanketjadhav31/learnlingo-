@@ -299,7 +299,22 @@ async function main() {
     const vocabSample = state.dayContent?.vocabAndTracks?.wordOfDay?.[0];
     console.log(`  📚 Vocabulary in response: ${vocabCount} words, sample:`, vocabSample ? `${vocabSample.word}:${vocabSample.definition}` : 'none');
     
+    console.log(`  📊 Checking draft - currentDay: ${state.currentDay}`);
+    console.log(`  📊 submissionDraft object:`, state.submissionDraft);
+    console.log(`  📊 submissionDraft keys:`, state.submissionDraft ? Object.keys(state.submissionDraft) : 'null');
+    
+    const draftText = state.submissionDraft?.[state.currentDay]?.text || "";
+    console.log(`  💾 Draft in response: ${draftText.length} chars`);
+    if (draftText.length > 0) {
+      console.log(`  💾 Draft preview: ${draftText.substring(0, 100)}...`);
+    }
+    
     console.log(`  ⏱ /api/day total time: ${elapsedMs(routeStart)}ms`);
+
+    // Prevent caching since draft data changes frequently
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
     res.json({
       tracker: state.tracker,
@@ -308,6 +323,7 @@ async function main() {
       dayProgress: summarizeDayProgress(todayProgress),
       // Keep last AI evaluation so frontend can show results even after reload/day advance.
       lastEvaluation: state.lastEvaluation || null,
+      submissionDraft: draftText,
     });
   });
 
@@ -331,6 +347,33 @@ async function main() {
 
     await stateStore.save(userId, state);
     return res.json({ ok: true, dayProgress: summarizeDayProgress(progress) });
+  });
+
+  app.patch("/api/day/draft", authRequired, async (req, res) => {
+    const userId = req.userId;
+    const draftText = String(req.body?.draftText || "");
+    
+    console.log(`  💾 Saving draft - User: ${userId}, Day: ?, Length: ${draftText.length} chars`);
+    
+    const state = await stateStore.getOrCreate(userId);
+    console.log(`  📊 Current day: ${state.currentDay}`);
+    console.log(`  📊 Existing submissionDraft:`, state.submissionDraft);
+    
+    if (!state.submissionDraft) state.submissionDraft = {};
+    state.submissionDraft[state.currentDay] = {
+      text: draftText,
+      savedAt: nowIso(),
+    };
+    
+    console.log(`  ✅ Draft set for day ${state.currentDay}:`, {
+      length: state.submissionDraft[state.currentDay].text.length,
+      savedAt: state.submissionDraft[state.currentDay].savedAt
+    });
+    
+    await stateStore.save(userId, state);
+    
+    console.log(`  ✓ Draft saved to database for day ${state.currentDay}`);
+    return res.json({ ok: true });
   });
 
   app.post("/api/submit", authRequired, async (req, res) => {

@@ -174,6 +174,7 @@ When evaluating a submission, return EXACTLY this JSON object:
 
   "scoreBreakdown": {
     "sentencesPercent":     <number>,
+    "hindiTranslationPercent": <number>,
     "writingPercent":       <number>,
     "speakingPercent":      <number>,
     "conversationPercent":  <number>,
@@ -230,6 +231,17 @@ When evaluating a submission, return EXACTLY this JSON object:
         "k":           <number>,
         "correctness": "Correct" | "Incorrect" | "Partially Correct",
         "feedback":    <string — 1 sentence>
+      }
+    ]
+  },
+
+  "hindiTranslation": {
+    "scorePercent": <number>,
+    "answers": [
+      {
+        "k":           <number>,
+        "correctness": "Correct" | "Incorrect" | "Partially Correct",
+        "feedback":    <string — 1 sentence explaining translation accuracy>
       }
     ]
   },
@@ -292,8 +304,8 @@ Sentence scoring:
   Incorrect           =   0% weight
 
 overallPercent = weighted average of all scoreBreakdown values:
-  sentences × 0.30 + writing × 0.20 + speaking × 0.15 +
-  conversation × 0.15 + questions × 0.10 + listening × 0.10
+  sentences × 0.25 + hindiTranslation × 0.10 + writing × 0.20 + speaking × 0.15 +
+  conversation × 0.15 + questions × 0.08 + listening × 0.07
 
 Tier thresholds:
   Strong  ≥ 75%

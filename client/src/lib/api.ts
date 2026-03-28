@@ -46,7 +46,18 @@ export async function fetchDay() {
   
   const data = await res.json();
   console.log(`✓ [API] fetchDay success - Day ${data.dayContent?.dayNumber}`);
-  return data as { tracker: Tracker; dayContent: DayContent; dayProgress: any; lastEvaluation?: Evaluation | null };
+  return data as { tracker: Tracker; dayContent: DayContent; dayProgress: any; lastEvaluation?: Evaluation | null; submissionDraft?: string };
+}
+
+export async function saveDraft(draftText: string) {
+  const url = `${API_BASE_URL}/api/day/draft`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ draftText }),
+  });
+  if (!res.ok) throw new Error("Failed to save draft");
+  return res.json();
 }
 
 export async function submitDay(submissionText: string) {
