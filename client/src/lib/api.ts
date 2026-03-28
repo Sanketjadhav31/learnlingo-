@@ -134,6 +134,58 @@ export async function resetUser() {
   return data as { ok: true };
 }
 
+export async function resetToday() {
+  console.log("📡 [API] resetToday called");
+  const url = `${API_BASE_URL}/api/reset/today`;
+  console.log(`📡 [API] Posting to: ${url}`);
+  
+  const res = await fetch(url, { method: "POST", headers: authHeaders() });
+  console.log(`📡 [API] Response status: ${res.status} ${res.statusText}`);
+  
+  if (!res.ok) {
+    console.error(`❌ [API] resetToday failed`);
+    throw new Error("Reset today failed");
+  }
+  
+  const data = await res.json();
+  console.log(`✓ [API] resetToday success`);
+  return data as { ok: true; message?: string };
+}
+
+export async function fetchHistory() {
+  console.log("📡 [API] fetchHistory called");
+  const url = `${API_BASE_URL}/api/history`;
+  console.log(`📡 [API] Fetching: ${url}`);
+  
+  const res = await fetch(url, { headers: authHeaders() });
+  console.log(`📡 [API] Response status: ${res.status} ${res.statusText}`);
+  
+  if (!res.ok) {
+    console.error(`❌ [API] fetchHistory failed`);
+    throw new Error("Failed to load history");
+  }
+  
+  const data = await res.json();
+  console.log(`✓ [API] fetchHistory success - ${data.history?.length || 0} days`);
+  return data as {
+    ok: true;
+    history: Array<{
+      dayNumber: number;
+      date: string;
+      overallPercent: number;
+      tier: string;
+      passFail: string;
+      scoreBreakdown: any;
+      theme: string;
+      grammarFocus: string;
+      fullEvaluation: any;
+    }>;
+    currentDay: number;
+    totalDaysCompleted: number;
+    streak: number;
+  };
+}
+
 export async function signup(name: string, email: string, password: string) {
   const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
     method: "POST",

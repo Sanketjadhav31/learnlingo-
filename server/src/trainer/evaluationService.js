@@ -354,32 +354,58 @@ function normalizeEvaluationShape(input) {
   const conversationNode = src.conversation ?? src.conversationFeedback ?? src.conversationTask ?? src.conversationPracticeEvaluation ?? src.conversationEvaluation ?? {};
   const breakdownNode = src.scoreBreakdown ?? src.scores ?? src.breakdown ?? {};
 
-  const correctCount = (arr) => arr.filter((x) => x && x.correctness === "Correct").length;
-  const sentencesPercent = sentenceEvaluations.length ? Math.round((correctCount(sentenceEvaluations) / sentenceEvaluations.length) * 100) : 0;
-  const questionsPercent = questionAnswers.length ? Math.round((correctCount(questionAnswers) / questionAnswers.length) * 100) : 0;
-  const listeningPercent = listeningAnswers.length ? Math.round((correctCount(listeningAnswers) / listeningAnswers.length) * 100) : 0;
+  // Advanced scoring: Correct = 100%, Partially Correct = 60%, Incorrect = 0%
+  const calculateWeightedScore = (arr) => {
+    if (!arr || arr.length === 0) return 0;
+    let totalWeight = 0;
+    for (const item of arr) {
+      if (item.correctness === "Correct") {
+        totalWeight += 1.0;
+      } else if (item.correctness === "Partially Correct") {
+        totalWeight += 0.6;
+      }
+      // Incorrect = 0, no addition
+    }
+    return Math.round((totalWeight / arr.length) * 100);
+  };
+
+  const sentencesPercent = sentenceEvaluations.length ? calculateWeightedScore(sentenceEvaluations) : 0;
+  const questionsPercent = questionAnswers.length ? calculateWeightedScore(questionAnswers) : 0;
+  const listeningPercent = listeningAnswers.length ? calculateWeightedScore(listeningAnswers) : 0;
   
   const hindiAnswers = asArray(src.hindiTranslation?.answers ?? src.hindiTranslationAnswers ?? []);
-  const hindiTranslationPercent = hindiAnswers.length ? Math.round((correctCount(hindiAnswers) / hindiAnswers.length) * 100) : 0;
+  const hindiTranslationPercent = hindiAnswers.length ? calculateWeightedScore(hindiAnswers) : 0;
 
   const writingPercent = toPercent(writingNode.scorePercent ?? writingNode.score ?? breakdownNode.writingPercent, sentencesPercent);
   const speakingPercent = toPercent(speakingNode.scorePercent ?? speakingNode.score ?? breakdownNode.speakingPercent, sentencesPercent);
   const conversationPercent = toPercent(conversationNode.scorePercent ?? conversationNode.score ?? breakdownNode.conversationPercent, sentencesPercent);
+  
+  // Advanced weighted calculation with more balanced distribution
+  // Grammar/Sentences are important but shouldn't dominate
+  // Writing, Speaking, Conversation are core skills and should have significant weight
   const computedOverall =
     src.overallPercent ??
     src.overallScore ??
     src.overall_score ??
     src.overallPercentage ??
-    Math.round((sentencesPercent * 0.25 + hindiTranslationPercent * 0.10 + writingPercent * 0.20 + speakingPercent * 0.15 + conversationPercent * 0.15 + questionsPercent * 0.08 + listeningPercent * 0.07) * 100) / 100;
+    Math.round((
+      sentencesPercent * 0.30 +           // Grammar/Sentences: 30% (increased from 25%)
+      hindiTranslationPercent * 0.10 +    // Hindi Translation: 10%
+      writingPercent * 0.20 +             // Writing: 20%
+      speakingPercent * 0.20 +            // Speaking: 20% (increased from 15%)
+      conversationPercent * 0.15 +        // Conversation: 15%
+      questionsPercent * 0.03 +           // Questions: 3% (reduced from 8%)
+      listeningPercent * 0.02             // Listening: 2% (reduced from 7%)
+    ) * 100) / 100;
   const overallPercent = toPercent(computedOverall, 0);
-  const passFailRaw = String(src.passFail ?? src.pass_fail ?? src.result ?? (overallPercent >= 76 ? "PASS" : "FAIL")).toUpperCase();
+  const passFailRaw = String(src.passFail ?? src.pass_fail ?? src.result ?? (overallPercent >= 70 ? "PASS" : "FAIL")).toUpperCase();
   const passFail = passFailRaw.includes("PASS") ? "PASS" : "FAIL";
   const tierRaw = String((src.tier ?? src.performanceTier ?? src.level) || "");
   const tier =
     /strong/i.test(tierRaw) ? "Strong" :
     /medium/i.test(tierRaw) ? "Medium" :
     /weak/i.test(tierRaw) ? "Weak" :
-    overallPercent >= 76 ? "Strong" : overallPercent >= 50 ? "Medium" : "Weak";
+    overallPercent >= 70 ? "Strong" : overallPercent >= 45 ? "Medium" : "Weak";
 
   if (overallPercent === 0) {
     const candidateKeys = Object.keys(src).slice(0, 20);
@@ -418,7 +444,10 @@ function normalizeEvaluationShape(input) {
     sentenceEvaluations,
     writing: {
       scorePercent: writingPercent,
+      original: String(writingNode.original ?? ""),
+      corrected: String(writingNode.corrected ?? writingNode.correctedVersion ?? writingNode.improvedVersion ?? ""),
       issues: asArray(writingNode.issues ?? writingNode.mistakes).map((x) => String(x)),
+      improvements: asArray(writingNode.improvements ?? writingNode.suggestions ?? []).map((x) => String(x)),
       feedback: String(
         writingNode.feedback ??
           writingNode.feedbackText ??
@@ -428,11 +457,13 @@ function normalizeEvaluationShape(input) {
           src.writingFeedback ??
           ""
       ),
-      improvedVersion: writingNode.improvedVersion ? String(writingNode.improvedVersion) : undefined,
     },
     speaking: {
       scorePercent: speakingPercent,
+      original: String(speakingNode.original ?? ""),
+      corrected: String(speakingNode.corrected ?? speakingNode.correctedVersion ?? speakingNode.improvedVersion ?? speakingNode.improvedPlan ?? ""),
       issues: asArray(speakingNode.issues ?? speakingNode.mistakes).map((x) => String(x)),
+      improvements: asArray(speakingNode.improvements ?? speakingNode.suggestions ?? []).map((x) => String(x)),
       feedback: String(
         speakingNode.feedback ??
           speakingNode.feedbackText ??
@@ -442,11 +473,13 @@ function normalizeEvaluationShape(input) {
           src.speakingFeedback ??
           ""
       ),
-      improvedPlan: speakingNode.improvedPlan ? String(speakingNode.improvedPlan) : undefined,
     },
     conversation: {
       scorePercent: conversationPercent,
+      original: String(conversationNode.original ?? ""),
+      corrected: String(conversationNode.corrected ?? conversationNode.correctedVersion ?? conversationNode.improvedVersion ?? ""),
       issues: asArray(conversationNode.issues ?? conversationNode.mistakes).map((x) => String(x)),
+      improvements: asArray(conversationNode.improvements ?? conversationNode.suggestions ?? []).map((x) => String(x)),
       feedback: String(
         conversationNode.feedback ??
           conversationNode.feedbackText ??
@@ -490,8 +523,23 @@ function normalizeEvaluationShape(input) {
       src.summary?.topMistakes ??
       src.summary?.mistakes
     )
-      .map((x) => String(x).trim())
-      .filter((x) => x && !["-", "–", "—", "•"].includes(x))
+      .map((x) => {
+        // Handle new object format with mistake, example, correction
+        if (typeof x === 'object' && x !== null) {
+          return {
+            mistake: String(x.mistake || x.error || x.description || '').trim(),
+            example: String(x.example || x.wrongExample || x.incorrect || '').trim(),
+            correction: String(x.correction || x.fix || x.correct || '').trim()
+          };
+        }
+        // Handle legacy string format
+        return {
+          mistake: String(x).trim(),
+          example: '',
+          correction: ''
+        };
+      })
+      .filter((x) => x.mistake && !["-", "–", "—", "•"].includes(x.mistake))
       .slice(0, 3),
     weakAreas: asArray(
       src.weakAreas ?? 
@@ -513,7 +561,7 @@ function normalizeEvaluationShape(input) {
     recurringMistakePatterns: extractRecurringMistakePatterns(sentenceEvaluations),
     todaySummary: src.todaySummary ? {
       topic: String(src.todaySummary.topic ?? "Today's Lesson"),
-      levelLabel: src.todaySummary.levelLabel ?? (overallPercent >= 76 ? "Advanced" : overallPercent >= 50 ? "Intermediate" : "Beginner"),
+      levelLabel: src.todaySummary.levelLabel ?? (overallPercent >= 70 ? "Advanced" : overallPercent >= 45 ? "Intermediate" : "Beginner"),
       dayNumber: Number(src.todaySummary.dayNumber ?? src.dayNumber ?? 1),
       keyGrammarPoints: asArray(src.todaySummary.keyGrammarPoints).map((x) => String(x)),
       keyVocabulary: asArray(src.todaySummary.keyVocabulary).map((v) => ({
@@ -636,7 +684,7 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
         Array.isArray(submissionParsed?.questions) ? submissionParsed.questions.length : 0;
       const attemptSubmissionListening =
         Array.isArray(submissionParsed?.listening) ? submissionParsed.listening.length : 0;
-      const passThreshold = dayContent.dayType === "weekly_review" ? 80 : 76;
+      const passThreshold = dayContent.dayType === "weekly_review" ? 75 : 70;
       console.log(
         `    📤 eval.request (attempt ${attempt}/${evalAttempts}): expected sentences=${sentenceCount}, questions=${questionCount}, listening=3, pass>=${passThreshold}%`
       );
@@ -686,7 +734,11 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
         // Try to generate from sentence errors if missing
         const mistakesFromSentences = normalized.sentenceEvaluations
           .filter(s => s.correctness === "Incorrect" && s.errorReason && s.errorReason !== "N/A")
-          .map(s => s.errorReason)
+          .map(s => ({
+            mistake: s.errorReason,
+            example: s.sentence || '',
+            correction: s.correctedSentence || ''
+          }))
           .slice(0, 3);
         
         if (mistakesFromSentences.length >= 3) {
@@ -694,9 +746,21 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
         } else {
           // Fallback to generic mistakes
           normalized.commonMistakesTop3 = [
-            "Grammar structure needs improvement",
-            "Vocabulary usage could be more natural",
-            "Sentence formation requires practice"
+            {
+              mistake: "Grammar structure needs improvement",
+              example: "",
+              correction: ""
+            },
+            {
+              mistake: "Vocabulary usage could be more natural",
+              example: "",
+              correction: ""
+            },
+            {
+              mistake: "Sentence formation requires practice",
+              example: "",
+              correction: ""
+            }
           ].slice(0, 3);
         }
       }
@@ -779,7 +843,7 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
 
 function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
   console.log(`    📊 Updating state after evaluation...`);
-  const passThreshold = dayContent.dayType === "weekly_review" ? 80 : 76;
+  const passThreshold = dayContent.dayType === "weekly_review" ? 75 : 70;
   const strong = evaluation.overallPercent >= passThreshold;
   console.log(`    ${strong ? "✓" : "❌"} Performance: ${evaluation.tier} (${evaluation.overallPercent}%)`);
 
@@ -843,10 +907,15 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
     {
       dayNumber: dayContent.dayNumber,
       dayType: dayContent.dayType,
+      date: new Date().toISOString(),
+      theme: dayContent.dayTheme,
+      grammarFocus: dayContent.grammarFocus,
       overallPercent: evaluation.overallPercent,
       tier: evaluation.tier,
+      passFail: evaluation.passFail,
       scoreBreakdown: evaluation.scoreBreakdown,
-      createdAt: new Date().toISOString(),
+      // Store full evaluation for history viewing
+      fullEvaluation: evaluation,
     },
   ];
 

@@ -29,6 +29,15 @@ function statusClass(value: string) {
 export function TrackerPanel({ tracker, dayProgress }: { tracker: Tracker; dayProgress: DayProgress | null }) {
   const work = tracker.todayWorkStatus || {};
   const cleanedMistakes = (tracker.commonMistakes || [])
+    .map((m) => {
+      // Handle both old string format and new object format
+      if (typeof m === 'string') {
+        return m;
+      } else if (typeof m === 'object' && m !== null && 'mistake' in m) {
+        return m.mistake;
+      }
+      return String(m);
+    })
     .filter((m) => !/gemini unavailable/i.test(String(m)))
     .filter((m) => !/⚠️ AI evaluation unavailable/i.test(String(m)))
     .filter(Boolean);

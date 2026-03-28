@@ -11,7 +11,7 @@ export type Tracker = {
     Speaking: number;
     Writing: number;
   };
-  commonMistakes: string[];
+  commonMistakes: (string | { mistake: string; example: string; correction: string })[];
 };
 
 export type DayContent = {
@@ -91,9 +91,32 @@ export type Evaluation = {
     listeningPercent: number;
   };
   sentenceEvaluations: SentenceEvaluation[];
-  writing: { scorePercent: number; issues: string[]; feedback: string; improvedVersion?: string };
-  speaking: { scorePercent: number; issues: string[]; feedback: string; improvedPlan?: string };
-  conversation: { scorePercent: number; issues: string[]; feedback: string };
+  writing: { 
+    scorePercent: number; 
+    issues: string[]; 
+    feedback: string; 
+    improvedVersion?: string;
+    original?: string;
+    corrected?: string;
+    improvements?: string[];
+  };
+  speaking: { 
+    scorePercent: number; 
+    issues: string[]; 
+    feedback: string; 
+    improvedPlan?: string;
+    original?: string;
+    corrected?: string;
+    improvements?: string[];
+  };
+  conversation: { 
+    scorePercent: number; 
+    issues: string[]; 
+    feedback: string;
+    original?: string;
+    corrected?: string;
+    improvements?: string[];
+  };
   questions: { 
     scorePercent: number; 
     answers: { 
@@ -105,7 +128,7 @@ export type Evaluation = {
     }[] 
   };
   listening: { scorePercent: number; answers: { k: number; correctness: "Correct" | "Incorrect"; correctVersion?: string; errorReason?: string }[] };
-  commonMistakesTop3: string[];
+  commonMistakesTop3: { mistake: string; example: string; correction: string }[];
   weakAreas: string[];
   todaySummary?: {
     topic: string;

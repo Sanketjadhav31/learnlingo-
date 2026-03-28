@@ -7,11 +7,12 @@ function cn(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-// Helper function to format text with **bold** markdown
+// Helper function to format text with **bold** and `code` markdown
 function formatText(text: string): React.ReactNode {
   if (!text) return text;
   
-  const parts = text.split(/(\*\*.*?\*\*)/g);
+  // Split by both **bold** and `code` patterns
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
   
   return (
     <>
@@ -22,6 +23,14 @@ function formatText(text: string): React.ReactNode {
             <span key={i} className="font-semibold text-amber-200 bg-amber-500/10 px-1 rounded">
               {boldText}
             </span>
+          );
+        }
+        if (part.startsWith('`') && part.endsWith('`')) {
+          const codeText = part.slice(1, -1);
+          return (
+            <code key={i} className="font-mono text-cyan-200 bg-cyan-500/15 px-1.5 py-0.5 rounded text-sm border border-cyan-400/20">
+              {codeText}
+            </code>
           );
         }
         return <span key={i}>{part}</span>;
@@ -129,12 +138,12 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
         {/* Motivational Message */}
         {evaluation.motivationalMessage && (
           <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 p-2 mt-2">
-            <div className="text-xs italic text-emerald-200">{evaluation.motivationalMessage}</div>
+            <div className="text-xs italic text-emerald-200">{formatText(evaluation.motivationalMessage)}</div>
           </div>
         )}
 
-        {/* Take Test Button - Show if passed with ≥76% */}
-        {evaluation.passFail === "PASS" && evaluation.overallPercent >= 76 && (
+        {/* Take Test Button - Show if passed with ≥70% */}
+        {evaluation.passFail === "PASS" && evaluation.overallPercent >= 70 && (
           <div className="mt-2">
             <button
               onClick={() => window.open('/test', '_blank')}
@@ -158,7 +167,7 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
           <div className="flex flex-wrap gap-1.5">
             {evaluation.strengths.map((strength, i) => (
               <span key={i} className="px-2 py-1 rounded-full text-xs bg-emerald-500/15 text-emerald-200 border border-emerald-400/30">
-                ✓ {strength}
+                ✓ {formatText(strength)}
               </span>
             ))}
           </div>
@@ -169,7 +178,7 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
       {evaluation.improvementFocus && (
         <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-2.5">
           <div className="text-xs font-semibold text-amber-200 mb-1">Focus next on:</div>
-          <div className="text-xs text-amber-100">{evaluation.improvementFocus}</div>
+          <div className="text-xs text-amber-100">{formatText(evaluation.improvementFocus)}</div>
         </div>
       )}
 
@@ -194,32 +203,170 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
       {/* Section Content */}
       <div className="rounded-lg border border-white/10 bg-black/20 p-4">
         {activeSection === "writing" && (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">✍️</span>
               <div className="text-sm font-semibold text-white/90">Writing Feedback</div>
             </div>
-            <div className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap">{evaluation.writing.feedback}</div>
+            
+            {evaluation.writing.original && (
+              <div className="rounded-lg border border-red-400/20 bg-red-500/10 p-3">
+                <div className="text-xs text-red-300 font-semibold mb-2">❌ Your Original:</div>
+                <div className="text-sm text-white/85 leading-relaxed">{formatText(evaluation.writing.original)}</div>
+              </div>
+            )}
+            
+            {evaluation.writing.corrected && (
+              <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
+                <div className="text-xs text-emerald-300 font-semibold mb-2">✅ Corrected Version:</div>
+                <div className="text-sm text-white/85 leading-relaxed">{formatText(evaluation.writing.corrected)}</div>
+              </div>
+            )}
+            
+            {evaluation.writing.issues && evaluation.writing.issues.length > 0 && (
+              <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
+                <div className="text-xs text-amber-300 font-semibold mb-2">🔍 Issues Found:</div>
+                <ul className="space-y-1">
+                  {evaluation.writing.issues.map((issue, i) => (
+                    <li key={i} className="text-sm text-white/85 flex gap-2">
+                      <span className="text-amber-400">•</span>
+                      <span>{formatText(issue)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {evaluation.writing.improvements && evaluation.writing.improvements.length > 0 && (
+              <div className="rounded-lg border border-blue-400/20 bg-blue-500/10 p-3">
+                <div className="text-xs text-blue-300 font-semibold mb-2">💡 Improvements:</div>
+                <ul className="space-y-1">
+                  {evaluation.writing.improvements.map((improvement, i) => (
+                    <li key={i} className="text-sm text-white/85 flex gap-2">
+                      <span className="text-blue-400">•</span>
+                      <span>{formatText(improvement)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="text-xs text-white/60 font-semibold mb-2">📝 Overall Feedback:</div>
+              <div className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap">{formatText(evaluation.writing.feedback)}</div>
+            </div>
           </div>
         )}
 
         {activeSection === "speaking" && (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">🗣️</span>
               <div className="text-sm font-semibold text-white/90">Speaking Feedback</div>
             </div>
-            <div className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap">{evaluation.speaking.feedback}</div>
+            
+            {evaluation.speaking.original && (
+              <div className="rounded-lg border border-red-400/20 bg-red-500/10 p-3">
+                <div className="text-xs text-red-300 font-semibold mb-2">❌ Your Original:</div>
+                <div className="text-sm text-white/85 leading-relaxed">{formatText(evaluation.speaking.original)}</div>
+              </div>
+            )}
+            
+            {evaluation.speaking.corrected && (
+              <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
+                <div className="text-xs text-emerald-300 font-semibold mb-2">✅ Corrected Version:</div>
+                <div className="text-sm text-white/85 leading-relaxed">{formatText(evaluation.speaking.corrected)}</div>
+              </div>
+            )}
+            
+            {evaluation.speaking.issues && evaluation.speaking.issues.length > 0 && (
+              <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
+                <div className="text-xs text-amber-300 font-semibold mb-2">🔍 Issues Found:</div>
+                <ul className="space-y-1">
+                  {evaluation.speaking.issues.map((issue, i) => (
+                    <li key={i} className="text-sm text-white/85 flex gap-2">
+                      <span className="text-amber-400">•</span>
+                      <span>{formatText(issue)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {evaluation.speaking.improvements && evaluation.speaking.improvements.length > 0 && (
+              <div className="rounded-lg border border-blue-400/20 bg-blue-500/10 p-3">
+                <div className="text-xs text-blue-300 font-semibold mb-2">💡 Improvements:</div>
+                <ul className="space-y-1">
+                  {evaluation.speaking.improvements.map((improvement, i) => (
+                    <li key={i} className="text-sm text-white/85 flex gap-2">
+                      <span className="text-blue-400">•</span>
+                      <span>{formatText(improvement)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="text-xs text-white/60 font-semibold mb-2">📝 Overall Feedback:</div>
+              <div className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap">{formatText(evaluation.speaking.feedback)}</div>
+            </div>
           </div>
         )}
 
         {activeSection === "conversation" && (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">💬</span>
               <div className="text-sm font-semibold text-white/90">Conversation Feedback</div>
             </div>
-            <div className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap">{evaluation.conversation.feedback}</div>
+            
+            {evaluation.conversation.original && (
+              <div className="rounded-lg border border-red-400/20 bg-red-500/10 p-3">
+                <div className="text-xs text-red-300 font-semibold mb-2">❌ Your Original:</div>
+                <div className="text-sm text-white/85 leading-relaxed whitespace-pre-line">{formatText(evaluation.conversation.original)}</div>
+              </div>
+            )}
+            
+            {evaluation.conversation.corrected && (
+              <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
+                <div className="text-xs text-emerald-300 font-semibold mb-2">✅ Corrected Version:</div>
+                <div className="text-sm text-white/85 leading-relaxed whitespace-pre-line">{formatText(evaluation.conversation.corrected)}</div>
+              </div>
+            )}
+            
+            {evaluation.conversation.issues && evaluation.conversation.issues.length > 0 && (
+              <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
+                <div className="text-xs text-amber-300 font-semibold mb-2">🔍 Issues Found:</div>
+                <ul className="space-y-1">
+                  {evaluation.conversation.issues.map((issue, i) => (
+                    <li key={i} className="text-sm text-white/85 flex gap-2">
+                      <span className="text-amber-400">•</span>
+                      <span>{formatText(issue)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {evaluation.conversation.improvements && evaluation.conversation.improvements.length > 0 && (
+              <div className="rounded-lg border border-blue-400/20 bg-blue-500/10 p-3">
+                <div className="text-xs text-blue-300 font-semibold mb-2">💡 Improvements:</div>
+                <ul className="space-y-1">
+                  {evaluation.conversation.improvements.map((improvement, i) => (
+                    <li key={i} className="text-sm text-white/85 flex gap-2">
+                      <span className="text-blue-400">•</span>
+                      <span>{formatText(improvement)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="text-xs text-white/60 font-semibold mb-2">📝 Overall Feedback:</div>
+              <div className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap">{formatText(evaluation.conversation.feedback)}</div>
+            </div>
           </div>
         )}
 
@@ -230,16 +377,30 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
               <div className="text-sm font-semibold text-white/90">Common Mistakes</div>
             </div>
             {evaluation.commonMistakesTop3 && evaluation.commonMistakesTop3.length > 0 ? (
-              <div className="space-y-2">
-                {evaluation.commonMistakesTop3.map((mistake, i) => (
-                  <div key={i} className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-3">
-                    <div className="flex items-center gap-2 mb-1.5">
+              <div className="space-y-3">
+                {evaluation.commonMistakesTop3.map((item, i) => (
+                  <div key={i} className="rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
                       <span className="flex-shrink-0 w-5 h-5 rounded-full bg-rose-500/20 text-rose-200 text-xs font-bold flex items-center justify-center">
                         {i + 1}
                       </span>
                       <div className="text-xs font-semibold text-rose-200">Common Mistake</div>
                     </div>
-                    <div className="text-sm text-rose-100 leading-relaxed">{mistake}</div>
+                    <div className="text-sm text-rose-100 leading-relaxed font-medium">{formatText(item.mistake)}</div>
+                    
+                    {item.example && (
+                      <div className="rounded border border-red-400/30 bg-red-500/10 p-2">
+                        <div className="text-xs font-semibold text-red-200 mb-1">❌ Your Example:</div>
+                        <div className="text-sm text-red-100 leading-relaxed">{formatText(item.example)}</div>
+                      </div>
+                    )}
+                    
+                    {item.correction && (
+                      <div className="rounded border border-green-400/30 bg-green-500/10 p-2">
+                        <div className="text-xs font-semibold text-green-200 mb-1">✅ Correction:</div>
+                        <div className="text-sm text-green-100 leading-relaxed">{formatText(item.correction)}</div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -311,7 +472,7 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
                         
                         {/* Sentence text in the middle */}
                         <div className="flex-1 text-sm text-white/80 leading-relaxed">
-                          {s.original || "No original text"}
+                          {formatText(s.original || "No original text")}
                         </div>
                         
                         {/* Badges on the right */}
@@ -338,16 +499,16 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
                         <div className="space-y-2 text-[11px]">
                           <div className="rounded-lg bg-black/20 p-2">
                             <div className="font-semibold text-white/90 mb-0.5">Original:</div>
-                            <div className="text-white/75 leading-relaxed">{s.original || "No original text"}</div>
+                            <div className="text-white/75 leading-relaxed">{formatText(s.original || "No original text")}</div>
                           </div>
                           <div className="rounded-lg bg-emerald-500/10 border border-emerald-400/20 p-2">
                             <div className="font-semibold text-emerald-200 mb-0.5">Correct:</div>
-                            <div className="text-emerald-100 leading-relaxed">{s.correctVersion || "No correction available"}</div>
+                            <div className="text-emerald-100 leading-relaxed">{formatText(s.correctVersion || "No correction available")}</div>
                           </div>
                           {s.errorReason && s.errorReason !== "N/A" && s.errorReason !== "—" && s.errorReason.trim() !== "" && (
                             <div className="rounded-lg bg-white/5 border border-white/10 p-2">
                               <div className="font-semibold text-white/90 mb-0.5">Reason:</div>
-                              <div className="text-white/75 leading-relaxed">{s.errorReason}</div>
+                              <div className="text-white/75 leading-relaxed">{formatText(s.errorReason)}</div>
                             </div>
                           )}
                           {s.tip && (
@@ -356,7 +517,7 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
                                 <span>💡</span>
                                 <div className="font-semibold text-amber-200">Tip:</div>
                               </div>
-                              <div className="text-amber-100 leading-relaxed">{s.tip}</div>
+                              <div className="text-amber-100 leading-relaxed">{formatText(s.tip)}</div>
                             </div>
                           )}
                         </div>
@@ -536,9 +697,9 @@ function LearningSummaryContent({ summary }: { summary: NonNullable<Evaluation['
                           {vocab.partOfSpeech}
                         </span>
                       </div>
-                      <div className="text-amber-100/80 text-xs mb-1.5">{vocab.meaning}</div>
+                      <div className="text-amber-100/80 text-xs mb-1.5">{formatText(vocab.meaning)}</div>
                       <div className="text-amber-200/70 italic text-xs border-l-2 border-amber-400/30 pl-2">
-                        "{vocab.exampleUse}"
+                        "{formatText(vocab.exampleUse)}"
                       </div>
                     </div>
                   ))}

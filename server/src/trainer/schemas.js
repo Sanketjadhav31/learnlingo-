@@ -103,7 +103,7 @@ const DayContentSchema = z.object({
 
 const SentenceEvaluationSchema = z.object({
   k: z.number().int().min(1),
-  correctness: z.enum(["Correct", "Incorrect"]),
+  correctness: z.enum(["Correct", "Incorrect", "Partially Correct"]),
   errorReason: z.string(),
   original: z.string().optional(),
   correctVersion: z.string().min(1),
@@ -145,7 +145,7 @@ const EvaluationSchema = z.object({
     answers: z.array(
       z.object({
         k: z.number().int().min(1),
-        correctness: z.enum(["Correct", "Incorrect"]),
+        correctness: z.enum(["Correct", "Incorrect", "Partially Correct"]),
         correctVersion: z.string().optional(),
         errorReason: z.string().optional(),
       })
@@ -156,7 +156,7 @@ const EvaluationSchema = z.object({
     answers: z.array(
       z.object({
         k: z.number().int().min(1),
-        correctness: z.enum(["Correct", "Incorrect"]),
+        correctness: z.enum(["Correct", "Incorrect", "Partially Correct"]),
         correctVersion: z.string().optional(),
         errorReason: z.string().optional(),
       })
@@ -168,14 +168,20 @@ const EvaluationSchema = z.object({
       answers: z.array(
         z.object({
           k: z.number().int().min(1),
-          correctness: z.enum(["Correct", "Incorrect"]),
+          correctness: z.enum(["Correct", "Incorrect", "Partially Correct"]),
           correctVersion: z.string().optional(),
           errorReason: z.string().optional(),
         })
       ),
     })
     .optional(),
-  commonMistakesTop3: z.array(z.string()).min(3).max(3),
+  commonMistakesTop3: z.array(
+    z.object({
+      mistake: z.string().min(1),
+      example: z.string(),
+      correction: z.string(),
+    })
+  ).min(3).max(3),
   weakAreas: z.array(z.string()).min(1).max(10),
   todaySummary: z.object({
     topic: z.string().min(1),

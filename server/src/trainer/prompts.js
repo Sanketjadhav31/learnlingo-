@@ -197,19 +197,28 @@ When evaluating a submission, return EXACTLY this JSON object:
 
   "writing": {
     "scorePercent": <number>,
-    "issues":       [<string — each issue in plain English, max 10 words each>],
+    "original":     <string — the learner's original writing text>,
+    "corrected":    <string — corrected version with all errors fixed>,
+    "issues":       [<string — each specific error in plain English, max 15 words each>],
+    "improvements": [<string — specific suggestions for improvement, max 20 words each>],
     "feedback":     <string — 2–3 sentences: what was good + what to improve, referencing learner's actual words>
   },
 
   "speaking": {
     "scorePercent": <number>,
-    "issues":       [<string>],
+    "original":     <string — the learner's original speaking text>,
+    "corrected":    <string — corrected version with all errors fixed>,
+    "issues":       [<string — each specific error>],
+    "improvements": [<string — specific suggestions>],
     "feedback":     <string — 2–3 sentences>
   },
 
   "conversation": {
     "scorePercent": <number>,
-    "issues":       [<string>],
+    "original":     <string — the learner's original conversation text>,
+    "corrected":    <string — corrected version with all errors fixed>,
+    "issues":       [<string — each specific error>],
+    "improvements": [<string — specific suggestions>],
     "feedback":     <string — 2–3 sentences>
   },
 
@@ -246,7 +255,13 @@ When evaluating a submission, return EXACTLY this JSON object:
     ]
   },
 
-  "commonMistakesTop3": [<string>, <string>, <string>],
+  "commonMistakesTop3": [
+    {
+      "mistake": <string — description of the mistake>,
+      "example": <string — actual wrong example from learner's work>,
+      "correction": <string — how to fix it / correct version>
+    }
+  ],
 
   "weakAreas":          [<string — short skill/topic name, e.g. "Article usage", "Verb tense consistency">],
 
@@ -300,21 +315,27 @@ When evaluating a submission, return EXACTLY this JSON object:
 SCORING RULES (BE STRICT AND CONSISTENT)
 Sentence scoring:
   Correct             = 100% weight
-  Partially Correct   =  60% weight  (grammar issue but meaning is clear)
-  Incorrect           =   0% weight
+  Partially Correct   =  60% weight  (minor errors: capitalization, punctuation, or one small grammar issue but meaning is clear)
+  Incorrect           =   0% weight  (major grammar errors, wrong meaning, or multiple errors)
+
+IMPORTANT: Do NOT mark sentences as "Incorrect" for minor issues like:
+- Missing capitalization at the start
+- Missing period at the end
+- Minor punctuation issues
+These should be "Partially Correct" with errorType "Punctuation"
 
 overallPercent = weighted average of all scoreBreakdown values:
-  sentences × 0.25 + hindiTranslation × 0.10 + writing × 0.20 + speaking × 0.15 +
-  conversation × 0.15 + questions × 0.08 + listening × 0.07
+  sentences × 0.30 + hindiTranslation × 0.10 + writing × 0.20 + speaking × 0.20 +
+  conversation × 0.15 + questions × 0.03 + listening × 0.02
 
 Tier thresholds:
-  Strong  ≥ 75%
-  Medium  ≥ 50%
-  Weak    <  50%
+  Strong  ≥ 70%
+  Medium  ≥ 45%
+  Weak    <  45%
 
 passFail:
-  PASS if overallPercent ≥ 60
-  FAIL if overallPercent <  60
+  PASS if overallPercent ≥ 70
+  FAIL if overallPercent <  70
 
 Score each section independently and honestly. Do not inflate scores to be kind.
 Encouragement comes through feedback words — not through false high scores.
@@ -332,7 +353,7 @@ FEEDBACK QUALITY RULES
 10. reviewReminder must reference specific content from today so it feels personal.
 11. topicNotes must read like a revision card — clear, structured, easy to scan later.
 12. quickRecap must work as flashcard prompts — punchy and memorable, not vague.
-13. commonMistakesTop3 must be real errors the learner made TODAY, not generic errors.
+13. commonMistakesTop3 must be real errors the learner made TODAY with actual examples and corrections.
 14. weakAreas must only list areas the learner actually struggled with in this session.
 
 ERROR TYPE CLASSIFICATION GUIDE:
@@ -343,8 +364,14 @@ Classify each sentence mistake using EXACTLY one of these types:
 - Word Choice  → wrong word used (e.g. "make homework" instead of "do homework")
 - Missing Word → article, preposition, or auxiliary verb omitted
 - Extra Word   → unnecessary word inserted into the sentence
-- Punctuation  → missing or wrong period, comma, apostrophe, or capital letter
+- Punctuation  → missing or wrong period, comma, apostrophe (NOT capitalization)
 - None         → sentence is fully correct — nothing to fix
+
+CAPITALIZATION RULES (IMPORTANT):
+- Missing capitalization at the start of a sentence is a MINOR error
+- If the ONLY error is capitalization, mark as "Partially Correct" with errorType "Punctuation"
+- Do NOT mark a sentence as "Incorrect" just for capitalization
+- Focus on grammar, meaning, and word choice as the primary evaluation criteria
 
 Always pick the MOST SIGNIFICANT error if a sentence has multiple issues.
 Explain it in plain English in errorReason (max 12 words).

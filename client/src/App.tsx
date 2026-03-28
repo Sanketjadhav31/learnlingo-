@@ -3,15 +3,27 @@ import { TrackerPanel } from "./components/TrackerPanel";
 import { LessonPanel } from "./components/LessonPanel";
 import { SubmissionEditor } from "./components/SubmissionEditor";
 import { EvaluationPanel } from "./components/EvaluationPanel";
+import { HistoryPanel } from "./components/HistoryPanel";
+import { ConfirmDialog } from "./components/ConfirmDialog";
 import { Toast, type ToastType } from "./components/Toast";
 import { LoadingSpinner } from "./components/LoadingSpinner";
-import { clearAuthToken, fetchDay, login, resetUser, setAuthToken, signup, submitDay, updateSectionProgress, verifySession } from "./lib/api";
+import { clearAuthToken, fetchDay, login, resetToday, resetUser, setAuthToken, signup, submitDay, updateSectionProgress, verifySession } from "./lib/api";
 import type { DayContent, DayProgress, Evaluation, Tracker } from "./lib/types";
 
 type LoadingState = {
   isLoading: boolean;
   message: string;
   submessage?: string;
+};
+
+type ConfirmState = {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmText: string;
+  cancelText: string;
+  type: "warning" | "danger";
+  onConfirm: () => void;
 };
 
 export default function App() {
@@ -27,6 +39,15 @@ export default function App() {
   const [loadingState, setLoadingState] = useState<LoadingState>({ isLoading: true, message: "Initializing..." });
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState>({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    cancelText: "Cancel",
+    type: "warning",
+    onConfirm: () => {},
+  });
   const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(null);
 
   const header = useMemo(() => {
@@ -169,25 +190,67 @@ export default function App() {
     }
   }
 
-  async function onReset() {
-    console.log("🔄 [Frontend] Resetting user");
-    setLoadingState({ isLoading: true, message: "Resetting progress...", submessage: "This will clear all your data" });
-    try {
-      console.log(`📡 [Frontend] Sending reset request...`);
-      await resetUser();
-      console.log(`✓ [Frontend] Reset successful, reloading...`);
-      showToast("success", "User progress reset successfully");
-      await load();
-    } catch (e: unknown) {
-      const errorMsg = e instanceof Error ? e.message : "Reset failed";
-      console.error(`❌ [Frontend] Reset failed:`, errorMsg);
-      showToast("error", friendlyError(errorMsg));
-    } finally {
-      setLoadingState({ isLoading: false, message: "" });
-    }
+  async function onResetAll() {
+    // Show custom confirmation dialog
+    setConfirmState({
+      isOpen: true,
+      title: "Reset All Progress",
+      message: "This will permanently delete:\n\n• All completed days\n• Your streak and history\n• All submissions and evaluations\n• All progress data\n\nYou will start from Day 1.\n\nAre you sure you want to continue?",
+      confirmText: "Reset All",
+      cancelText: "Cancel",
+      type: "danger",
+      onConfirm: async () => {
+        setConfirmState({ ...confirmState, isOpen: false });
+        console.log("🔄 [Frontend] Resetting all progress");
+        setLoadingState({ isLoading: true, message: "Resetting all progress...", submessage: "This will clear all your data" });
+        try {
+          console.log(`📡 [Frontend] Sending full reset request...`);
+          await resetUser();
+          console.log(`✓ [Frontend] Full reset successful, reloading...`);
+          showToast("success", "All progress reset successfully");
+          await load();
+        } catch (e: unknown) {
+          const errorMsg = e instanceof Error ? e.message : "Reset failed";
+          console.error(`❌ [Frontend] Reset all failed:`, errorMsg);
+          showToast("error", friendlyError(errorMsg));
+        } finally {
+          setLoadingState({ isLoading: false, message: "" });
+        }
+      },
+    });
   }
 
-  const [activeTab, setActiveTab] = useState<"progress" | "lesson" | "submission" | "evaluation">("progress");
+  async function onResetToday() {
+    // Show custom confirmation dialog
+    setConfirmState({
+      isOpen: true,
+      title: "Reset Today's Work?",
+      message: "This will clear:\n\n• Today's submission\n• Today's evaluation\n• Today's draft\n• Section progress\n\nYour overall progress (streak, completed days) will NOT be affected.\n\nContinue?",
+      confirmText: "Reset Today",
+      cancelText: "Cancel",
+      type: "warning",
+      onConfirm: async () => {
+        setConfirmState({ ...confirmState, isOpen: false });
+        console.log("🔄 [Frontend] Resetting today's work");
+        setLoadingState({ isLoading: true, message: "Resetting today...", submessage: "Clearing today's submission and evaluation" });
+        try {
+          console.log(`📡 [Frontend] Sending reset today request...`);
+          await resetToday();
+          console.log(`✓ [Frontend] Reset today successful, reloading...`);
+          showToast("success", "Today's work reset successfully");
+          await load();
+        } catch (e: unknown) {
+          const errorMsg = e instanceof Error ? e.message : "Reset today failed";
+          console.error(`❌ [Frontend] Reset today failed:`, errorMsg);
+          showToast("error", friendlyError(errorMsg));
+        } finally {
+          setLoadingState({ isLoading: false, message: "" });
+        }
+      },
+    });
+  }
+
+  const [activeTab, setActiveTab] = useState<"progress" | "lesson" | "submission" | "evaluation" | "history">("progress");
 
   async function onToggleSectionDone(sectionId: string, done: boolean) {
     try {
@@ -277,12 +340,20 @@ export default function App() {
                 Reload
               </button>
               <button
-                onClick={onReset}
-                className="rounded-xl border border-rose-400/30 bg-rose-500/10 backdrop-blur-sm px-4 py-2 text-sm font-medium text-rose-100 hover:bg-rose-500/20 hover:border-rose-400/50 transition-all duration-200 flex items-center gap-2"
+                onClick={onResetToday}
+                className="rounded-xl border border-amber-400/30 bg-amber-500/10 backdrop-blur-sm px-4 py-2 text-sm font-medium text-amber-100 hover:bg-amber-500/20 hover:border-amber-400/50 transition-all duration-200 flex items-center gap-2"
                 type="button"
               >
                 <span>🔄</span>
-                Reset
+                Reset Today
+              </button>
+              <button
+                onClick={onResetAll}
+                className="rounded-xl border border-rose-400/30 bg-rose-500/10 backdrop-blur-sm px-4 py-2 text-sm font-medium text-rose-100 hover:bg-rose-500/20 hover:border-rose-400/50 transition-all duration-200 flex items-center gap-2"
+                type="button"
+              >
+                <span>🗑️</span>
+                Reset All
               </button>
               <button onClick={onLogout} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm" type="button">Logout</button>
             </div>
@@ -299,6 +370,7 @@ export default function App() {
               { id: "lesson", icon: "📚", label: "Lesson", color: "from-indigo-500 to-purple-500" },
               { id: "submission", icon: "✍️", label: "Submit Work", color: "from-purple-500 to-pink-500" },
               { id: "evaluation", icon: "📈", label: "Evaluation", color: "from-emerald-500 to-teal-500" },
+              { id: "history", icon: "📜", label: "History", color: "from-amber-500 to-orange-500" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -342,6 +414,18 @@ export default function App() {
             </div>
           </div>
         )}
+        
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          isOpen={confirmState.isOpen}
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmText={confirmState.confirmText}
+          cancelText={confirmState.cancelText}
+          type={confirmState.type}
+          onConfirm={confirmState.onConfirm}
+          onCancel={() => setConfirmState({ ...confirmState, isOpen: false })}
+        />
         
         {/* Toast Notification */}
         {toast && (
@@ -429,6 +513,16 @@ export default function App() {
                 <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl h-full flex flex-col">
                   <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
                     <EvaluationPanel evaluation={evaluation} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "history" && (
+              <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-6 shadow-2xl h-full flex flex-col">
+                  <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
+                    <HistoryPanel />
                   </div>
                 </div>
               </div>

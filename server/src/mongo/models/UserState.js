@@ -13,7 +13,7 @@ const TrackerSchema = new mongoose.Schema(
     todayWorkStatus: mongoose.Schema.Types.Mixed,
     finalStatus: String,
     confidenceScore: mongoose.Schema.Types.Mixed,
-    commonMistakes: [String],
+    commonMistakes: { type: mongoose.Schema.Types.Mixed, default: [] },
   },
   { _id: false }
 );

@@ -599,12 +599,103 @@ async function main() {
     });
   });
 
+  // POST /api/reset - Full reset (all progress)
   app.post("/api/reset", authRequired, async (req, res) => {
     const userId = req.userId;
-    console.log(`  🔄 Resetting user progress: ${userId}`);
+    console.log(`  🔄 Full reset: ${userId}`);
     await stateStore.reset(userId);
-    console.log(`  ✓ User reset completed`);
+    console.log(`  ✓ Full reset completed`);
     res.json({ ok: true });
+  });
+
+  // POST /api/reset/today - Reset only today's work
+  app.post("/api/reset/today", authRequired, async (req, res) => {
+    const userId = req.userId;
+    console.log(`  🔄 Reset today only: ${userId}`);
+    
+    try {
+      const state = await stateStore.getOrCreate(userId);
+      const currentDay = state.currentDay;
+      
+      // Clear today's submission and evaluation
+      state.lastSubmissionParsed = null;
+      state.lastEvaluation = null;
+      state.submissionDraft = state.submissionDraft || {};
+      delete state.submissionDraft[currentDay];
+      
+      // Reset day progress
+      state.dayProgress = {
+        dayNumber: currentDay,
+        sectionsRead: {},
+        sectionsReadCount: 0,
+        totalSections: 8,
+        readPercentage: 0,
+        submissionStatus: "not_started",
+        evaluationResult: null,
+        dayCompleted: false,
+        dayAdvanced: false,
+        canSubmit: false,
+        requiredSections: 6,
+      };
+      
+      // Reset consecutive fails for current day
+      state.consecutiveFailsOnCurrentDay = 0;
+      
+      // Update tracker status
+      state.tracker.todayWorkStatus = {
+        "Warm-up": "Pending",
+        "Grammar": "Pending",
+        "Pronunciation": "Pending",
+        "Vocabulary": "Pending",
+        "Listening": "Pending",
+        "Core Tasks": "Pending",
+        "Sentences": "Pending",
+        "Questions": "Pending",
+      };
+      state.tracker.finalStatus = "Waiting for Submission";
+      
+      await stateStore.save(userId, state);
+      console.log(`  ✓ Today's work reset completed for day ${currentDay}`);
+      res.json({ ok: true, message: `Day ${currentDay} reset successfully` });
+    } catch (error) {
+      console.error(`  ❌ Reset today failed:`, error);
+      res.status(500).json({ ok: false, reject: { message: "Failed to reset today" } });
+    }
+  });
+
+  // GET /api/history - Get all past days' work and results
+  app.get("/api/history", authRequired, async (req, res) => {
+    const userId = req.userId;
+    console.log(`  📚 GET /api/history - User: ${userId}`);
+    
+    try {
+      const state = await stateStore.getOrCreate(userId);
+      
+      // Build history from scoreHistory with full evaluation data
+      const history = (state.scoreHistory || []).map((entry) => ({
+        dayNumber: entry.dayNumber,
+        date: entry.date || entry.createdAt,
+        overallPercent: entry.overallPercent,
+        tier: entry.tier,
+        passFail: entry.passFail,
+        scoreBreakdown: entry.scoreBreakdown,
+        theme: entry.theme || "Unknown",
+        grammarFocus: entry.grammarFocus || "Unknown",
+        fullEvaluation: entry.fullEvaluation || null,
+      }));
+      
+      console.log(`  ✓ History retrieved - ${history.length} days`);
+      res.json({ 
+        ok: true, 
+        history,
+        currentDay: state.currentDay,
+        totalDaysCompleted: state.tracker.totalDaysCompleted,
+        streak: state.tracker.streak,
+      });
+    } catch (error) {
+      console.error(`  ❌ Error retrieving history:`, error);
+      res.status(500).json({ ok: false, reject: { message: "Failed to retrieve history" } });
+    }
   });
 
   // ============================================================================

@@ -5,6 +5,38 @@ function cn(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
+// Helper function to format text with **bold** and `code` markdown
+function formatText(text: string): React.ReactNode {
+  if (!text) return text;
+  
+  // Split by both **bold** and `code` patterns
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          const boldText = part.slice(2, -2);
+          return (
+            <span key={i} className="font-semibold text-amber-200 bg-amber-500/10 px-1 rounded">
+              {boldText}
+            </span>
+          );
+        }
+        if (part.startsWith('`') && part.endsWith('`')) {
+          const codeText = part.slice(1, -1);
+          return (
+            <code key={i} className="font-mono text-cyan-200 bg-cyan-500/15 px-1.5 py-0.5 rounded text-sm border border-cyan-400/20">
+              {codeText}
+            </code>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 const SECTIONS = [
   ["warmup", "Warm-up"],
   ["grammar", "Grammar"],
@@ -319,25 +351,25 @@ export function LessonPanel({
             {day.speakingTask?.prompt && isValidContent(day.speakingTask.prompt) && (
               <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
                 <div className="text-xs text-emerald-300 font-semibold mb-2">🎤 Speaking Task</div>
-                <div className="text-sm text-white/85">{day.speakingTask.prompt}</div>
+                <div className="text-sm text-white/85">{formatText(day.speakingTask.prompt)}</div>
               </div>
             )}
             {day.writingTask?.prompt && isValidContent(day.writingTask.prompt) && (
               <div className="rounded-lg border border-blue-400/20 bg-blue-500/10 p-3">
                 <div className="text-xs text-blue-300 font-semibold mb-2">✍️ Writing Task</div>
-                <div className="text-sm text-white/85">{day.writingTask.prompt}</div>
+                <div className="text-sm text-white/85">{formatText(day.writingTask.prompt)}</div>
                 {day.writingTask.requiredIdiom && isValidContent(day.writingTask.requiredIdiom) && (
-                  <div className="mt-2 text-xs text-white/60">Required idiom: {day.writingTask.requiredIdiom}</div>
+                  <div className="mt-2 text-xs text-white/60">Required idiom: {formatText(day.writingTask.requiredIdiom)}</div>
                 )}
                 {day.writingTask.requiredPhrasal && isValidContent(day.writingTask.requiredPhrasal) && (
-                  <div className="text-xs text-white/60">Required phrasal: {day.writingTask.requiredPhrasal}</div>
+                  <div className="text-xs text-white/60">Required phrasal: {formatText(day.writingTask.requiredPhrasal)}</div>
                 )}
               </div>
             )}
             {day.conversationTask?.prompt && isValidContent(day.conversationTask.prompt) && (
               <div className="rounded-lg border border-purple-400/20 bg-purple-500/10 p-3">
                 <div className="text-xs text-purple-300 font-semibold mb-2">💬 Conversation Task</div>
-                <div className="text-sm text-white/85">{day.conversationTask.prompt}</div>
+                <div className="text-sm text-white/85">{formatText(day.conversationTask.prompt)}</div>
               </div>
             )}
             {!day.speakingTask?.prompt && !day.writingTask?.prompt && !day.conversationTask?.prompt && (
@@ -354,26 +386,25 @@ export function LessonPanel({
                     const trimmed = line.trim();
                     if (!trimmed) return <div key={i} className="h-1" />;
                     
-                    // Remove ** markdown
-                    const cleaned = trimmed.replace(/\*\*/g, '');
-                    
-                    // Check if it's a heading (starts with **)
+                    // Check if it's a heading (starts with ** and ends with **)
                     const isHeading = trimmed.startsWith('**') && trimmed.endsWith('**');
                     if (isHeading) {
-                      return <div key={i} className="font-semibold text-indigo-200 mt-2 mb-1">{cleaned}</div>;
+                      const headingText = trimmed.slice(2, -2);
+                      return <div key={i} className="font-semibold text-indigo-200 mt-2 mb-1">{formatText(headingText)}</div>;
                     }
                     
                     // Check if it's a bullet point
                     if (trimmed.startsWith('*') || trimmed.startsWith('•')) {
+                      const bulletText = trimmed.replace(/^[*•]\s*/, '');
                       return (
                         <div key={i} className="flex gap-2 pl-2 leading-relaxed">
                           <span className="text-indigo-400 mt-0.5">•</span>
-                          <span className="flex-1">{cleaned.replace(/^[*•]\s*/, '')}</span>
+                          <span className="flex-1">{formatText(bulletText)}</span>
                         </div>
                       );
                     }
                     
-                    return <p key={i} className="leading-relaxed">{cleaned}</p>;
+                    return <p key={i} className="leading-relaxed">{formatText(trimmed)}</p>;
                   })}
                 </div>
               </div>
@@ -386,23 +417,24 @@ export function LessonPanel({
                     const trimmed = line.trim();
                     if (!trimmed) return <div key={i} className="h-1" />;
                     
-                    const cleaned = trimmed.replace(/\*\*/g, '');
                     const isHeading = trimmed.startsWith('**') && trimmed.endsWith('**');
                     
                     if (isHeading) {
-                      return <div key={i} className="font-semibold text-emerald-200 mt-2 mb-1">{cleaned}</div>;
+                      const headingText = trimmed.slice(2, -2);
+                      return <div key={i} className="font-semibold text-emerald-200 mt-2 mb-1">{formatText(headingText)}</div>;
                     }
                     
                     if (trimmed.startsWith('*') || trimmed.startsWith('•')) {
+                      const bulletText = trimmed.replace(/^[*•]\s*/, '');
                       return (
                         <div key={i} className="flex gap-2 pl-2 leading-relaxed">
                           <span className="text-emerald-400 mt-0.5">•</span>
-                          <span className="flex-1">{cleaned.replace(/^[*•]\s*/, '')}</span>
+                          <span className="flex-1">{formatText(bulletText)}</span>
                         </div>
                       );
                     }
                     
-                    return <p key={i} className="leading-relaxed">{cleaned}</p>;
+                    return <p key={i} className="leading-relaxed">{formatText(trimmed)}</p>;
                   })}
                 </div>
               </div>
