@@ -1,5 +1,53 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+// API Key rotation system - detects all GOOGLE_API_KEY* environment variables
+let apiKeyPool = [];
+
+function initializeApiKeyPool() {
+  const keys = [];
+  
+  // Collect all GOOGLE_API_KEY* environment variables (unlimited)
+  Object.keys(process.env).forEach(key => {
+    if (key === 'GOOGLE_API_KEY' || key.match(/^GOOGLE_API_KEY\d+$/)) {
+      const value = process.env[key];
+      if (value && String(value).trim()) {
+        keys.push(String(value).trim());
+      }
+    }
+  });
+  
+  apiKeyPool = keys;
+  
+  if (apiKeyPool.length > 0) {
+    console.log(`🔑 Loaded ${apiKeyPool.length} API key(s) for rotation`);
+  }
+  
+  return apiKeyPool;
+}
+
+function getRandomApiKey() {
+  if (apiKeyPool.length === 0) {
+    initializeApiKeyPool();
+  }
+  
+  if (apiKeyPool.length === 0) {
+    return null;
+  }
+  
+  // Random selection
+  const randomIndex = Math.floor(Math.random() * apiKeyPool.length);
+  const selectedKey = apiKeyPool[randomIndex];
+  
+  // Log last 6 characters for tracking
+  const maskedKey = selectedKey.length > 6 
+    ? `...${selectedKey.slice(-6)}` 
+    : selectedKey;
+  
+  console.log(`🔑 Using API key: ${maskedKey} (${randomIndex + 1}/${apiKeyPool.length})`);
+  
+  return selectedKey;
+}
+
 function withTimeout(promise, ms) {
   return Promise.race([
     promise,
@@ -110,7 +158,7 @@ async function callGeminiJson({
 }
 
 function getGeminiModel(modelNameOverride, apiVersionOverride) {
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const apiKey = getRandomApiKey();
   if (!apiKey || !String(apiKey).trim()) {
     console.warn("      ⚠ No Gemini API key found");
     return null;
@@ -118,13 +166,13 @@ function getGeminiModel(modelNameOverride, apiVersionOverride) {
   const modelName = normalizeGeminiModelName(modelNameOverride || process.env.GEMINI_MODEL || "");
   const finalName = modelName || "gemini-2.5-flash";
   const apiVersion = String(apiVersionOverride || getApiVersion()).trim() || "v1beta";
-  console.log(`      🔑 Gemini model initialized: ${finalName} (apiVersion: ${apiVersion})`);
+  console.log(`      🤖 Gemini model initialized: ${finalName} (apiVersion: ${apiVersion})`);
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({ model: finalName }, { apiVersion });
 }
 
 async function listModelsThatSupportGenerateContent() {
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const apiKey = getRandomApiKey();
   if (!apiKey || !String(apiKey).trim()) return [];
 
   const apiVersion = getApiVersion();
@@ -174,34 +222,34 @@ async function callGeminiJsonWithFallback({
       const model = getGeminiModel(name, apiVersion);
       if (!model) throw new Error("Gemini API key missing. Set GOOGLE_API_KEY in server/.env");
 
-    try {
-      console.log(`      🤖 Using Gemini model: ${name} (apiVersion: ${apiVersion})`);
+      try {
+        console.log(`      🤖 Using Gemini model: ${name} (apiVersion: ${apiVersion})`);
         const useResponseMimeType = apiVersion !== "v1";
         return await callGeminiJson({ model, systemPrompt, userPrompt, timeoutMs, responseSchema, useResponseMimeType });
-    } catch (e) {
-      lastErr = e;
-      const msg = e instanceof Error ? e.message : String(e);
-      // Try next model on quota/rate-limit; quotas are often model-specific.
-      if (msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("Too Many Requests")) {
-        sawQuotaError = true;
-        console.warn(`      ⚠ Model '${name}' quota/rate-limited. Trying next model...`);
-        continue;
+      } catch (e) {
+        lastErr = e;
+        const msg = e instanceof Error ? e.message : String(e);
+        // Try next model on quota/rate-limit; quotas are often model-specific.
+        if (msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("Too Many Requests")) {
+          sawQuotaError = true;
+          console.warn(`      ⚠ Model '${name}' quota/rate-limited. Trying next model...`);
+          continue;
+        }
+        if (
+          msg.includes("503") ||
+          msg.toLowerCase().includes("service unavailable") ||
+          msg.toLowerCase().includes("high demand") ||
+          msg.toLowerCase().includes("temporarily unavailable")
+        ) {
+          console.warn(`      ⚠ Model '${name}' service unavailable/high demand. Trying next model...`);
+          continue;
+        }
+        if (isModelNotFoundOrUnsupported(msg)) {
+          console.warn(`      ⚠ Model '${name}' unavailable for generateContent. Trying next...`);
+          continue;
+        }
+        throw e;
       }
-      if (
-        msg.includes("503") ||
-        msg.toLowerCase().includes("service unavailable") ||
-        msg.toLowerCase().includes("high demand") ||
-        msg.toLowerCase().includes("temporarily unavailable")
-      ) {
-        console.warn(`      ⚠ Model '${name}' service unavailable/high demand. Trying next model...`);
-        continue;
-      }
-      if (isModelNotFoundOrUnsupported(msg)) {
-        console.warn(`      ⚠ Model '${name}' unavailable for generateContent. Trying next...`);
-        continue;
-      }
-      throw e;
-    }
     }
   }
 
@@ -234,4 +282,3 @@ module.exports = {
   getGeminiModel,
   getGeminiModelCandidates,
 };
-

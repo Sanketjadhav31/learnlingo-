@@ -76,19 +76,16 @@ function parseSubmission(text: string, day: DayContent): SubmissionData {
     } else if (trimmed.startsWith("4. Sentence Practice")) {
       section = "sentences";
       itemIndex = 0;
-    } else if (trimmed.startsWith("5. Hindi to English Translation")) {
-      section = "hindiTranslation";
-      itemIndex = 0;
-    } else if (trimmed.startsWith("6. Questions:")) {
+    } else if (trimmed.startsWith("5. Questions:")) {
       section = "questions";
       itemIndex = 0;
-    } else if (trimmed.startsWith("7. Listening Comprehension:")) {
+    } else if (trimmed.startsWith("6. Listening Comprehension:")) {
       section = "listening";
       itemIndex = 0;
-    } else if (trimmed.startsWith("8. Vocabulary Quiz:")) {
+    } else if (trimmed.startsWith("7. Vocabulary Quiz:")) {
       section = "vocabQuiz";
       itemIndex = 0;
-    } else if (trimmed.startsWith("8. Reflection") || trimmed.startsWith("9. Reflection")) {
+    } else if (trimmed.startsWith("7. Reflection") || trimmed.startsWith("8. Reflection")) {
       section = "reflection";
       itemIndex = 0;
     } else if (trimmed) {
@@ -142,39 +139,33 @@ function buildSubmissionText(data: SubmissionData, day: DayContent): string {
     .filter(s => s);
   text += `4. Sentence Practice:\n${sentenceLines.join("\n")}\n\n`;
   
-  // Hindi Translation - only include non-empty ones
-  const hindiLines = data.hindiTranslation
-    .map((h, i) => h && h.trim() ? `${i + 1}. ${h}` : "")
-    .filter(h => h);
-  text += `5. Hindi to English Translation:\n${hindiLines.join("\n")}\n\n`;
-  
   // Questions - only include non-empty ones
   const questionLines = data.questions
     .map((q, i) => q && q.trim() ? `${i + 1}. ${q}` : "")
     .filter(q => q);
-  text += `6. Questions:\n${questionLines.join("\n")}\n\n`;
+  text += `5. Questions:\n${questionLines.join("\n")}\n\n`;
   
   // Listening - only include non-empty ones
   const listeningLines = data.listening
     .map((l, i) => l && l.trim() ? `${i + 1}. ${l}` : "")
     .filter(l => l);
-  text += `7. Listening Comprehension:\n${listeningLines.join("\n")}\n\n`;
+  text += `6. Listening Comprehension:\n${listeningLines.join("\n")}\n\n`;
   
   if (day.dayType === "weekly_review" && data.vocabQuiz) {
     const vocabLines = data.vocabQuiz
       .map((v, i) => v && v.trim() ? `${i + 1}. ${v}` : "")
       .filter(v => v);
-    text += `8. Vocabulary Quiz:\n${vocabLines.join("\n")}\n\n`;
+    text += `7. Vocabulary Quiz:\n${vocabLines.join("\n")}\n\n`;
     
     const reflectionLines = data.reflection
       .map((r, i) => r && r.trim() ? `${i + 1}. ${r}` : "")
       .filter(r => r);
-    text += `9. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
+    text += `8. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
   } else {
     const reflectionLines = data.reflection
       .map((r, i) => r && r.trim() ? `${i + 1}. ${r}` : "")
       .filter(r => r);
-    text += `8. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
+    text += `7. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
   }
 
   return text;
@@ -401,7 +392,7 @@ export function SubmissionEditor(props: {
                 // Extract the actual text without the speaker prefix
                 const currentValue = formData.conversation[i] || "";
                 const textWithoutPrefix = currentValue.startsWith(`${speaker}:`) 
-                  ? currentValue.substring(speaker.length + 1).trim() 
+                  ? currentValue.substring(speaker.length + 1).trimStart() 
                   : currentValue;
                 
                 return (
@@ -411,6 +402,7 @@ export function SubmissionEditor(props: {
                       value={textWithoutPrefix}
                       onChange={(e) => {
                         const newConv = [...formData.conversation];
+                        // Don't trim the value - preserve spaces as user types
                         newConv[i] = `${speaker}: ${e.target.value}`;
                         updateFormData("conversation", newConv);
                       }}

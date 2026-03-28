@@ -225,13 +225,38 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
 
   const pronunciationWords = Array.from({ length: 5 }, (_, i) => {
     const x = pronWordsIn[i] || {};
-    let ipa = asString(x.ipa || x.ipaText || x.phonetic || x.pronunciation || "");
+    let ipa = asString(
+      x.ipa || 
+      x.ipaText || 
+      x.phonetic || 
+      x.pronunciation || 
+      x.transcription || 
+      ""
+    );
     // Clean up IPA: remove extra slashes if Gemini adds them
     ipa = ipa.replace(/^\/+|\/+$/g, ''); // Remove leading/trailing slashes
     
-    const word = asString(x.word || x.term || x.vocab || "");
-    const mis = asString(x.mis || x.commonMispronunciation || x.wrong || x.mistake || x.incorrect || "");
-    const correct = asString(x.correct || x.correctPronunciation || x.correctVersion || x.right || x.tip || "");
+    const word = asString(x.word || x.term || x.vocab || x.text || "");
+    const mis = asString(
+      x.mis || 
+      x.commonMispronunciation || 
+      x.mispronunciation ||
+      x.wrong || 
+      x.mistake || 
+      x.incorrect || 
+      x.commonMistake ||
+      ""
+    );
+    const correct = asString(
+      x.correct || 
+      x.correctPronunciation || 
+      x.correctVersion || 
+      x.right || 
+      x.tip || 
+      x.guidance ||
+      x.howTo ||
+      ""
+    );
 
     // Provide fallback if fields are empty
     if (!word || word.length === 0) {
@@ -247,7 +272,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
     return {
       word: word,
       ipa: ipa || "/unknown/",
-      stress: asString(x.stress || x.syllableStress || "") || "single",
+      stress: asString(x.stress || x.syllableStress || x.stressPattern || "") || "single",
       mis: mis || "No common mispronunciation noted",
       correct: correct || "Pronounce clearly",
     };
@@ -259,20 +284,42 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
 
   const warmUpCorrections = Array.from({ length: 3 }, (_, i) => {
     const x = warmUpCorrectionsIn[i] || {};
-    const wrong = asString(x.wrong || x.incorrect || x.mistake || x.error || x.original || x.before || "");
-    const correct = asString(x.correct || x.correctVersion || x.correction || x.fixed || x.right || x.after || x.corrected || "");
+    const wrong = asString(
+      x.wrong || 
+      x.incorrectSentence || 
+      x.incorrect || 
+      x.mistake || 
+      x.error || 
+      x.original || 
+      x.before || 
+      ""
+    );
+    const correct = asString(
+      x.correct || 
+      x.correctSentence || 
+      x.correctVersion || 
+      x.correction || 
+      x.fixed || 
+      x.right || 
+      x.after || 
+      x.corrected || 
+      ""
+    );
+    const explanation = asString(x.explanation || x.reason || x.why || "");
     
     // Provide fallback if fields are empty
     if (!wrong || wrong.length === 0 || !correct || correct.length === 0) {
       return {
         wrong: `Example incorrect sentence ${i + 1}`,
         correct: `Example correct sentence ${i + 1}`,
+        explanation: "",
       };
     }
 
     return {
       wrong: wrong,
       correct: correct,
+      explanation: explanation,
     };
   });
 
