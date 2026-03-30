@@ -162,12 +162,18 @@ export default function App() {
       // Automatically switch to evaluation tab to show results
       setActiveTab("evaluation");
 
-      showToast(
-        "success",
-        res.next.action === "advance"
-          ? "Submitted! Day completed and progress saved."
-          : "Submitted! Evaluation ready (retry if needed)."
-      );
+      // Show appropriate message based on advancement
+      if (res.next.action === "advance") {
+        showToast(
+          "success",
+          `🎉 Excellent! Day ${res.next.day - 1} completed! Moving to Day ${res.next.day}...`
+        );
+      } else {
+        showToast(
+          "info",
+          `📊 Evaluation complete! Score: ${Math.round(res.evaluation.overallPercent)}%. ${res.evaluation.passFail === "PASS" ? "Already advanced today - come back tomorrow!" : "Try again to improve your score!"}`
+        );
+      }
       
       // If advanced to next day, reload after showing results
       if (res.next.action === "advance") {

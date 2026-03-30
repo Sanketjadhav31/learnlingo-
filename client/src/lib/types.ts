@@ -73,6 +73,13 @@ export type SentenceEvaluation = {
   original?: string;
   correctVersion: string;
   naturalVersion: string;
+  penalties?: {
+    capitalization?: number;
+    punctuation?: number;
+    spelling?: number;
+    grammar?: number;
+    total?: number;
+  };
 };
 
 export type Evaluation = {
@@ -84,6 +91,7 @@ export type Evaluation = {
   improvementFocus?: string;
   scoreBreakdown: {
     sentencesPercent: number;
+    hindiTranslationPercent?: number;
     writingPercent: number;
     speakingPercent: number;
     conversationPercent: number;
@@ -91,6 +99,17 @@ export type Evaluation = {
     listeningPercent: number;
   };
   sentenceEvaluations: SentenceEvaluation[];
+  hindiTranslation?: {
+    scorePercent: number;
+    answers: {
+      k: number;
+      correctness: "Correct" | "Incorrect" | "Partially Correct";
+      correctVersion?: string;
+      errorReason?: string;
+      feedback?: string;
+      original?: string;
+    }[];
+  };
   writing: { 
     scorePercent: number; 
     issues: string[]; 
@@ -121,7 +140,8 @@ export type Evaluation = {
     scorePercent: number; 
     answers: { 
       k: number; 
-      correctness: "Correct" | "Incorrect"; 
+      correctness: "Correct" | "Incorrect" | "Partially Correct"; 
+      original?: string;
       correctVersion?: string; 
       errorReason?: string;
       feedback?: string;

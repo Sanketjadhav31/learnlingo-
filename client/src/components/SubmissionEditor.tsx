@@ -376,9 +376,10 @@ export function SubmissionEditor(props: {
             </button>
             <button
               type="button"
-              disabled={!props.canSubmit || props.submitting}
+              disabled={!props.canSubmit  || props.submitting}
               onClick={props.onSubmit}
               className="flex-1 sm:flex-none rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-2 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-sm font-semibold text-white hover:from-indigo-400 hover:to-purple-400 disabled:opacity-50 sm:min-w-[130px]"
+              title="📚 Complete more sections: You need to complete at least 5 lesson sections before you can submit. Go to Lesson tab."
             >
               {props.submitting ? "⏳ Submitting..." : "✨ Submit Work"}
             </button>

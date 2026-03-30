@@ -42,25 +42,50 @@ STRICT RULES FOR HINDI SENTENCES:
 5) NEVER use placeholder text like "यह एक उदाहरण वाक्य है"
 6) NEVER repeat the same sentence with different numbers
 7) Each sentence must have proper grammar and natural Hindi usage
+8) **IMPORTANT: Include a MIX of sentence types:**
+   - 9-11 Positive/Affirmative sentences (मैं स्कूल जाता हूँ।)
+   - 6-6 Negative sentences (मैं स्कूल नहीं जाता हूँ।)
+   - 3-5 Question sentences (क्या तुम स्कूल जाते हो?)
 
 EXAMPLES OF GOOD HINDI SENTENCES (Beginner Level):
+POSITIVE:
 - मैं रोज़ सुबह चाय पीता हूँ। (I drink tea every morning.)
 - वह स्कूल जाती है। (She goes to school.)
 - हम खाना खाते हैं। (We eat food.)
 - वे काम पर जाते हैं। (They go to work.)
 - मेरा नाम राज है। (My name is Raj.)
 
+NEGATIVE:
+- मैं कॉफी नहीं पीता हूँ। (I don't drink coffee.)
+- वह आज घर पर नहीं है। (She is not at home today.)
+- हम देर से नहीं आते हैं। (We don't come late.)
+
+QUESTIONS:
+- क्या तुम चाय पीते हो? (Do you drink tea?)
+- तुम कहाँ जाते हो? (Where do you go?)
+- वह क्या करती है? (What does she do?)
+
 EXAMPLES OF GOOD HINDI SENTENCES (Intermediate Level):
+POSITIVE:
 - मैं कल बाज़ार जाऊंगा और सब्ज़ियाँ खरीदूंगा। (I will go to the market tomorrow and buy vegetables.)
-- अगर बारिश होती है तो मैं घर पर रहूंगा। (If it rains, I will stay at home.)
 - वह पिछले साल दिल्ली में रहती थी। (She used to live in Delhi last year.)
+
+NEGATIVE:
+- अगर बारिश होती है तो मैं घर से बाहर नहीं जाऊंगा। (If it rains, I won't go out.)
+- उसने अभी तक खाना नहीं खाया है। (He hasn't eaten food yet.)
+
+QUESTIONS:
+- तुम कल कहाँ जाओगे? (Where will you go tomorrow?)
+- क्या तुमने अपना काम पूरा कर लिया? (Have you completed your work?)
 
 FORMAT REQUIREMENT:
 hindiTranslation: {
   items: [
     { k: 1, hindiSentence: "मैं रोज़ सुबह चाय पीता हूँ।" },
     { k: 2, hindiSentence: "वह स्कूल जाती है।" },
-    ... (exactly 20 unique sentences)
+    { k: 15, hindiSentence: "मैं कॉफी नहीं पीता हूँ।" },  // Negative
+    { k: 18, hindiSentence: "क्या तुम चाय पीते हो?" },  // Question
+    ... (exactly 20 unique sentences with mix of positive, negative, questions)
   ]
 }
 
@@ -226,9 +251,12 @@ When evaluating a submission, return EXACTLY this JSON object:
     "scorePercent": <number>,
     "answers": [
       {
-        "k":           <number>,
-        "correctness": "Correct" | "Incorrect" | "Partially Correct",
-        "feedback":    <string — 1 sentence explaining why correct or incorrect>
+        "k":              <number — REQUIRED>,
+        "correctness":    "Correct" | "Incorrect" | "Partially Correct" — REQUIRED,
+        "original":       <string — REQUIRED: the learner's original answer text>,
+        "correctVersion": <string — REQUIRED: the correct answer>,
+        "errorReason":    <string — REQUIRED: why the answer was incorrect, max 15 words. Use "—" if correct>,
+        "feedback":       <string — REQUIRED: 1 sentence explaining why correct or incorrect>
       }
     ]
   },
@@ -237,9 +265,11 @@ When evaluating a submission, return EXACTLY this JSON object:
     "scorePercent": <number>,
     "answers": [
       {
-        "k":           <number>,
-        "correctness": "Correct" | "Incorrect" | "Partially Correct",
-        "feedback":    <string — 1 sentence>
+        "k":              <number>,
+        "correctness":    "Correct" | "Incorrect" | "Partially Correct",
+        "correctVersion": <string — the correct answer if learner was wrong>,
+        "errorReason":    <string — why the answer was incorrect, max 15 words>,
+        "feedback":       <string — 1 sentence>
       }
     ]
   },
@@ -248,9 +278,12 @@ When evaluating a submission, return EXACTLY this JSON object:
     "scorePercent": <number>,
     "answers": [
       {
-        "k":           <number>,
-        "correctness": "Correct" | "Incorrect" | "Partially Correct",
-        "feedback":    <string — 1 sentence explaining translation accuracy>
+        "k":              <number — REQUIRED>,
+        "correctness":    "Correct" | "Incorrect" | "Partially Correct" — REQUIRED,
+        "original":       <string — REQUIRED: the learner's original translation text>,
+        "correctVersion": <string — REQUIRED: the correct translation>,
+        "errorReason":    <string — REQUIRED: why the translation was incorrect, max 15 words. Use "—" if correct>,
+        "feedback":       <string — REQUIRED: 1 sentence explaining translation accuracy>
       }
     ]
   },
@@ -313,16 +346,85 @@ When evaluating a submission, return EXACTLY this JSON object:
 }
 
 SCORING RULES (BE STRICT AND CONSISTENT)
-Sentence scoring:
-  Correct             = 100% weight
-  Partially Correct   =  60% weight  (minor errors: capitalization, punctuation, or one small grammar issue but meaning is clear)
-  Incorrect           =   0% weight  (major grammar errors, wrong meaning, or multiple errors)
 
-IMPORTANT: Do NOT mark sentences as "Incorrect" for minor issues like:
-- Missing capitalization at the start
-- Missing period at the end
-- Minor punctuation issues
-These should be "Partially Correct" with errorType "Punctuation"
+PENALTY SYSTEM (CRITICAL - APPLY TO ALL TEXT EVALUATIONS):
+Apply these deductions to Grammar/Sentences, Writing, Speaking, Conversation, and Hindi Translation:
+
+1. CAPITALIZATION PENALTIES:
+   - Sentence doesn't start with capital letter: -10% per occurrence (max -20%)
+   - Lowercase "I" when used as pronoun: -5% per occurrence (max -15%)
+   - Proper nouns not capitalized: -5% per occurrence (max -15%)
+   
+2. PUNCTUATION PENALTIES:
+   - Missing end punctuation (. ! ?): -5% per sentence
+   - Missing comma in compound sentences: -3% per occurrence (max -10%)
+   - Incorrect punctuation usage: -3% per occurrence (max -10%)
+   
+3. SPELLING PENALTIES:
+   - Each spelling mistake: -5% (max -15% total)
+   - Common word misspelled (the, their, there, etc.): -7% per occurrence
+   
+4. GRAMMAR PENALTIES (EXISTING):
+   - Wrong tense: -10% per occurrence
+   - Subject-verb disagreement: -10% per occurrence
+   - Wrong word order: -10% per occurrence
+   - Missing required word (article, preposition): -10% per occurrence
+   - Wrong word choice: -8% per occurrence
+
+PENALTY APPLICATION RULES:
+- Calculate base score first (Correct/Partially Correct/Incorrect)
+- Then apply ALL applicable penalties
+- Final score cannot go below 0%
+- Document penalties in errorReason field
+- Example: "Missing capital letter at start (-10%), missing period (-5%)"
+
+CORRECTNESS CLASSIFICATION WITH PENALTIES:
+After applying penalties, classify as:
+- Correct (100%): No errors, no penalties
+- Partially Correct (60% base, then apply penalties): 
+  * Minor errors only (1-2 capitalization/punctuation issues)
+  * After penalties, typically 40-55%
+- Incorrect (0%): 
+  * Major grammar errors
+  * Multiple errors (3+)
+  * Wrong meaning
+  * After penalties would be below 30%
+
+Sentence scoring:
+  Correct             = 100% weight (no penalties)
+  Partially Correct   =  60% base weight, then apply penalties (typically results in 40-55%)
+  Incorrect           =   0% weight (major errors, multiple issues)
+
+IMPORTANT PENALTY EXAMPLES:
+Example 1: "she goes to school" 
+- Base: Partially Correct (60%)
+- Penalty: Missing capital at start (-10%), missing period (-5%)
+- Final: 45%
+- Classification: Partially Correct
+
+Example 2: "I go to school everyday"
+- Base: Partially Correct (60%)
+- Penalty: Missing capital at start (-10%), "everyday" should be "every day" (-5% spelling)
+- Final: 45%
+- Classification: Partially Correct
+
+Example 3: "she go to school"
+- Base: Incorrect (0%)
+- Reason: Subject-verb disagreement (major grammar error)
+- Classification: Incorrect
+
+Example 4: "i am student"
+- Base: Partially Correct (60%)
+- Penalty: Lowercase "i" (-5%), missing article "a" (-10%), missing period (-5%)
+- Final: 40%
+- Classification: Partially Correct
+
+PENALTY DOCUMENTATION:
+Always document penalties in the errorReason field:
+- Good: "Missing capital letter (-10%), missing period (-5%)"
+- Good: "Lowercase 'I' (-5%), wrong tense (-10%)"
+- Bad: "Some errors"
+- Bad: "Needs improvement"
 
 overallPercent = weighted average of all scoreBreakdown values:
   sentences × 0.30 + hindiTranslation × 0.10 + writing × 0.20 + speaking × 0.20 +
@@ -330,8 +432,8 @@ overallPercent = weighted average of all scoreBreakdown values:
 
 Tier thresholds:
   Strong  ≥ 70%
-  Medium  ≥ 45%
-  Weak    <  45%
+  Medium  ≥ 50% (adjusted from 45% due to stricter penalties)
+  Weak    <  50%
 
 passFail:
   PASS if overallPercent ≥ 70
@@ -339,6 +441,7 @@ passFail:
 
 Score each section independently and honestly. Do not inflate scores to be kind.
 Encouragement comes through feedback words — not through false high scores.
+With the new penalty system, scores will be lower but more accurate.
 
 FEEDBACK QUALITY RULES
 1.  Be ENCOURAGING first, corrective second. Never make the learner feel stupid.

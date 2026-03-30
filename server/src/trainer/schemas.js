@@ -146,8 +146,10 @@ const EvaluationSchema = z.object({
       z.object({
         k: z.number().int().min(1),
         correctness: z.enum(["Correct", "Incorrect", "Partially Correct"]),
+        original: z.string().optional(),
         correctVersion: z.string().optional(),
         errorReason: z.string().optional(),
+        feedback: z.string().optional(),
       })
     ),
   }),
@@ -162,6 +164,19 @@ const EvaluationSchema = z.object({
       })
     ),
   }),
+  hindiTranslation: z.object({
+    scorePercent: z.number().min(0).max(100),
+    answers: z.array(
+      z.object({
+        k: z.number().int().min(1),
+        correctness: z.enum(["Correct", "Incorrect", "Partially Correct"]),
+        original: z.string().optional(),
+        correctVersion: z.string().optional(),
+        errorReason: z.string().optional(),
+        feedback: z.string().optional(),
+      })
+    ),
+  }).optional(),
   vocabQuiz: z
     .object({
       scorePercent: z.number().min(0).max(100),

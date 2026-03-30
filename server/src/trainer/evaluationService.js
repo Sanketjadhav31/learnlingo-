@@ -309,6 +309,7 @@ function normalizeEvaluationShape(input) {
         row?.fail ??
         row?.verdict
     ),
+    original: row?.original ? String(row.original) : undefined,
     correctVersion: row?.correctVersion ? String(row.correctVersion) : undefined,
     errorReason: row?.errorReason ? String(row.errorReason) : undefined,
     feedback: row?.feedback ? String(row.feedback) : undefined,
@@ -373,7 +374,31 @@ function normalizeEvaluationShape(input) {
   const questionsPercent = questionAnswers.length ? calculateWeightedScore(questionAnswers) : 0;
   const listeningPercent = listeningAnswers.length ? calculateWeightedScore(listeningAnswers) : 0;
   
-  const hindiAnswers = asArray(src.hindiTranslation?.answers ?? src.hindiTranslationAnswers ?? []);
+  // Extract Hindi translation answers with multiple fallback paths
+  const hindiSource =
+    src?.hindiTranslation?.answers ??
+    src?.hindiTranslation?.items ??
+    src.hindiTranslation ??
+    src.hindiTranslationEvaluation?.answers ??
+    src.hindiTranslationEvaluation ??
+    src.hindiTranslationAnswers;
+  
+  const hindiAnswers = extractArray(hindiSource).map((row, i) => ({
+    k: Number(row?.k || row?.idx || i + 1),
+    correctness: normalizeCorrectness(
+      row?.correctness ??
+        row?.status ??
+        row?.result ??
+        row?.passed ??
+        row?.pass ??
+        row?.verdict
+    ),
+    original: row?.original ? String(row.original) : undefined,
+    correctVersion: row?.correctVersion ? String(row.correctVersion) : undefined,
+    errorReason: row?.errorReason ? String(row.errorReason) : undefined,
+    feedback: row?.feedback ? String(row.feedback) : undefined,
+  }));
+  
   const hindiTranslationPercent = hindiAnswers.length ? calculateWeightedScore(hindiAnswers) : 0;
 
   const writingPercent = toPercent(writingNode.scorePercent ?? writingNode.score ?? breakdownNode.writingPercent, sentencesPercent);
@@ -405,7 +430,7 @@ function normalizeEvaluationShape(input) {
     /strong/i.test(tierRaw) ? "Strong" :
     /medium/i.test(tierRaw) ? "Medium" :
     /weak/i.test(tierRaw) ? "Weak" :
-    overallPercent >= 70 ? "Strong" : overallPercent >= 45 ? "Medium" : "Weak";
+    overallPercent >= 70 ? "Strong" : overallPercent >= 50 ? "Medium" : "Weak";
 
   if (overallPercent === 0) {
     const candidateKeys = Object.keys(src).slice(0, 20);
@@ -500,11 +525,7 @@ function normalizeEvaluationShape(input) {
     },
     hindiTranslation: {
       scorePercent: hindiTranslationPercent,
-      answers: hindiAnswers.map((a) => ({
-        k: Number(a.k ?? a.idx ?? a.index ?? 0),
-        correctness: String(a.correctness ?? "Incorrect"),
-        feedback: String(a.feedback ?? a.comment ?? "—"),
-      })),
+      answers: hindiAnswers,
     },
     vocabQuiz: vocabAnswers.length
       ? {
@@ -549,7 +570,8 @@ function normalizeEvaluationShape(input) {
       src.summary?.improvementAreas
     )
       .map((x) => String(x).trim())
-      .filter((x) => x && !["-", "–", "—", "•"].includes(x)),
+      .filter((x) => x && !["-", "–", "—", "•"].includes(x))
+      .slice(0, 10),
     strongAreas: extractStrongAreas(src, {
       sentencesPercent,
       writingPercent,
@@ -709,6 +731,23 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
       console.log(
         `    📦 eval normalized: overall=${normalized.overallPercent}% tier=${normalized.tier} sentences=${normalized.sentenceEvaluations?.length ?? 0} q=${normalized.questions?.answers?.length ?? 0} listen=${normalized.listening?.answers?.length ?? 0}`
       );
+      
+      // Debug: Check hindiTranslation data
+      if (normalized.hindiTranslation) {
+        const hindiAnswers = normalized.hindiTranslation.answers || [];
+        const sampleAnswer = hindiAnswers[0] || {};
+        console.log(`    🔍 DEBUG hindiTranslation: count=${hindiAnswers.length}, sample keys=[${Object.keys(sampleAnswer).join(', ')}]`);
+        if (hindiAnswers.length > 0) {
+          console.log(`    🔍 DEBUG sample answer:`, JSON.stringify(sampleAnswer, null, 2));
+          // Check first 3 answers in detail
+          for (let i = 0; i < Math.min(3, hindiAnswers.length); i++) {
+            const ans = hindiAnswers[i];
+            console.log(`    🔍 DEBUG answer[${i}]: k=${ans.k}, correctness=${ans.correctness}, hasOriginal=${!!ans.original}, hasCorrectVersion=${!!ans.correctVersion}, hasErrorReason=${!!ans.errorReason}, hasFeedback=${!!ans.feedback}`);
+          }
+        }
+      } else {
+        console.log(`    ⚠ DEBUG: normalized.hindiTranslation is missing!`);
+      }
 
       // Never fabricate evaluation: if Gemini response is incomplete, require retry.
       if (!Array.isArray(normalized.sentenceEvaluations) || normalized.sentenceEvaluations.length !== sentenceCount) {

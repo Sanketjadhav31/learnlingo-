@@ -44,14 +44,40 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
   const [selectedK, setSelectedK] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState<string>("sentences");
 
-  const EVAL_SECTIONS = [
-    ["sentences", "Sentence Corrections"],
-    ["writing", "Writing Feedback"],
-    ["speaking", "Speaking Feedback"],
-    ["conversation", "Conversation Feedback"],
-    ["mistakes", "Common Mistakes"],
-    ["summary", "📚 Learning Summary"],
-  ] as const;
+  const EVAL_SECTIONS = useMemo(() => {
+    const sections: Array<[string, string]> = [
+      ["sentences", "Sentence Corrections"],
+    ];
+    
+    // Show Hindi→English tab if hindiTranslation exists and has answers
+    if (evaluation?.hindiTranslation && 
+        evaluation.hindiTranslation.answers && 
+        Array.isArray(evaluation.hindiTranslation.answers) && 
+        evaluation.hindiTranslation.answers.length > 0) {
+      sections.push(["hindi", "Hindi→English"]);
+    }
+    
+    // Show Questions tab if questions exists and has answers
+    if (evaluation?.questions && 
+        evaluation.questions.answers && 
+        Array.isArray(evaluation.questions.answers) && 
+        evaluation.questions.answers.length > 0) {
+      sections.push(["questions", "Questions"]);
+    }
+    
+    sections.push(
+      ["writing", "Writing Feedback"],
+      ["speaking", "Speaking Feedback"],
+      ["conversation", "Conversation Feedback"],
+      ["mistakes", "Common Mistakes"]
+    );
+    
+    if (evaluation?.todaySummary) {
+      sections.push(["summary", "📚 Learning Summary"]);
+    }
+    
+    return sections;
+  }, [evaluation]);
 
   const filtered = useMemo(() => {
     if (!evaluation) return [];
@@ -110,26 +136,69 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
           <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
             <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Grammar</div>
-            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.scoreBreakdown.sentencesPercent)}%</div>
+            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.scoreBreakdown.sentencesPercent || 0)}%</div>
           </div>
+          {evaluation.hindiTranslation && evaluation.hindiTranslation.answers && evaluation.hindiTranslation.answers.length > 0 && (
+            <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
+              <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Hindi→Eng</div>
+              <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.hindiTranslation.scorePercent || 0)}%</div>
+            </div>
+          )}
           <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
             <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Writing</div>
-            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.writing.scorePercent)}%</div>
+            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.writing.scorePercent || 0)}%</div>
           </div>
           <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
             <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Speaking</div>
-            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.speaking.scorePercent)}%</div>
+            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.speaking.scorePercent || 0)}%</div>
           </div>
           <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
             <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Conversation</div>
-            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.conversation.scorePercent)}%</div>
+            <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.conversation.scorePercent || 0)}%</div>
           </div>
+          {evaluation.questions && evaluation.questions.answers && evaluation.questions.answers.length > 0 && (
+            <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
+              <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Questions</div>
+              <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.questions.scorePercent || 0)}%</div>
+            </div>
+          )}
+          {evaluation.listening && evaluation.listening.answers && evaluation.listening.answers.length > 0 && (
+            <div className="rounded border border-white/10 bg-black/20 p-1.5 sm:p-2 text-center">
+              <div className="text-[9px] sm:text-xs text-white/60 mb-0.5">Listening</div>
+              <div className="text-sm sm:text-base font-semibold text-white">{Math.round(evaluation.listening.scorePercent || 0)}%</div>
+            </div>
+          )}
         </div>
 
         {/* Motivational Message */}
         {evaluation.motivationalMessage && (
           <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 p-2 mt-2">
             <div className="text-xs italic text-emerald-200">{formatText(evaluation.motivationalMessage)}</div>
+          </div>
+        )}
+
+        {/* Day Advancement Status */}
+        {evaluation.passFail === "PASS" && evaluation.overallPercent >= 70 && (
+          <div className="rounded-lg border border-indigo-400/40 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 p-3 mt-2">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl">🎉</span>
+              <span className="text-sm font-semibold text-indigo-200">Day Completed!</span>
+            </div>
+            <div className="text-xs text-indigo-100/80">
+              Great job! You've passed this day. The system will automatically advance you to the next day if it's a new calendar day (IST timezone).
+            </div>
+          </div>
+        )}
+
+        {evaluation.passFail === "FAIL" && (
+          <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-3 mt-2">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl">💪</span>
+              <span className="text-sm font-semibold text-amber-200">Keep Practicing!</span>
+            </div>
+            <div className="text-xs text-amber-100/80">
+              You need 70% or higher to advance to the next day. Review the feedback below and try again!
+            </div>
           </div>
         )}
 
@@ -417,6 +486,194 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
           <LearningSummaryContent summary={evaluation.todaySummary} />
         )}
 
+        {activeSection === "hindi" && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">🇮🇳</span>
+              <div className="text-sm font-semibold text-white/90">Hindi to English Translation</div>
+              {evaluation.hindiTranslation && evaluation.hindiTranslation.scorePercent !== undefined && (
+                <div className="ml-auto text-sm text-white/70">Score: {Math.round(evaluation.hindiTranslation.scorePercent)}%</div>
+              )}
+            </div>
+            
+            {(() => {
+              // Debug logging
+              console.log('🔍 FRONTEND DEBUG: hindiTranslation exists?', !!evaluation.hindiTranslation);
+              console.log('🔍 FRONTEND DEBUG: hindiTranslation.answers exists?', !!evaluation.hindiTranslation?.answers);
+              console.log('🔍 FRONTEND DEBUG: hindiTranslation.answers length:', evaluation.hindiTranslation?.answers?.length);
+              if (evaluation.hindiTranslation?.answers && evaluation.hindiTranslation.answers.length > 0) {
+                console.log('🔍 FRONTEND DEBUG: First 3 answers:', evaluation.hindiTranslation.answers.slice(0, 3));
+              }
+              return null;
+            })()}
+            
+            {evaluation.hindiTranslation && evaluation.hindiTranslation.answers && evaluation.hindiTranslation.answers.length > 0 ? (
+              <div className="space-y-2.5">
+                {evaluation.hindiTranslation.answers.map((answer) => {
+                  const hasDetailedFeedback = answer.original || answer.correctVersion || answer.errorReason || answer.feedback;
+                  
+                  return (
+                    <div key={answer.k} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-200 text-xs font-bold flex items-center justify-center">
+                          {answer.k}
+                        </div>
+                        <div className={cn(
+                          "text-xs font-semibold px-2.5 py-0.5 rounded whitespace-nowrap",
+                          answer.correctness === "Correct" ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30" :
+                          answer.correctness === "Partially Correct" ? "bg-amber-500/20 text-amber-200 border border-amber-400/30" :
+                          "bg-rose-500/20 text-rose-200 border border-rose-400/30"
+                        )}>
+                          {answer.correctness}
+                        </div>
+                      </div>
+                      
+                      {!hasDetailedFeedback && (
+                        <div className="text-xs text-white/50 italic">
+                          Detailed feedback not available for this evaluation. Submit again to get full feedback.
+                        </div>
+                      )}
+                      
+                      {answer.original && (
+                        <div className="rounded-lg bg-red-500/10 border border-red-400/20 p-2 mb-2">
+                          <div className="text-xs font-semibold text-red-200 mb-1">❌ Your Translation:</div>
+                          <div className="text-sm text-red-100 leading-relaxed">{formatText(answer.original)}</div>
+                        </div>
+                      )}
+                      
+                      {answer.correctVersion && answer.correctness !== "Correct" && (
+                        <div className="rounded-lg bg-emerald-500/10 border border-emerald-400/20 p-2 mb-2">
+                          <div className="text-xs font-semibold text-emerald-200 mb-1">✅ Correct Translation:</div>
+                          <div className="text-sm text-emerald-100 leading-relaxed">{formatText(answer.correctVersion)}</div>
+                        </div>
+                      )}
+                      
+                      {answer.errorReason && answer.errorReason !== "N/A" && answer.errorReason !== "—" && answer.errorReason.trim() !== "" && (
+                        <div className="rounded-lg bg-white/5 border border-white/10 p-2 mb-2">
+                          <div className="text-xs font-semibold text-white/90 mb-1">Reason:</div>
+                          <div className="text-sm text-white/75 leading-relaxed">{formatText(answer.errorReason)}</div>
+                        </div>
+                      )}
+                      
+                      {answer.feedback && answer.feedback !== "N/A" && answer.feedback !== "—" && answer.feedback.trim() !== "" && (
+                        <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-2">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span>💡</span>
+                            <div className="text-xs font-semibold text-amber-200">Tip:</div>
+                          </div>
+                          <div className="text-sm text-amber-100 leading-relaxed">{formatText(answer.feedback)}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
+                <div className="text-sm text-white/60">
+                  {evaluation.hindiTranslation && evaluation.hindiTranslation.scorePercent !== undefined 
+                    ? `Hindi translations were evaluated with a score of ${Math.round(evaluation.hindiTranslation.scorePercent)}%, but detailed feedback is not available for this evaluation.`
+                    : "No Hindi translation results available."}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeSection === "questions" && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">❓</span>
+              <div className="text-sm font-semibold text-white/90">Questions</div>
+              {evaluation.questions && evaluation.questions.scorePercent !== undefined && (
+                <div className="ml-auto text-sm text-white/70">Score: {Math.round(evaluation.questions.scorePercent)}%</div>
+              )}
+            </div>
+            
+            {(() => {
+              // Debug logging
+              console.log('🔍 FRONTEND DEBUG: questions exists?', !!evaluation.questions);
+              console.log('🔍 FRONTEND DEBUG: questions.answers exists?', !!evaluation.questions?.answers);
+              console.log('🔍 FRONTEND DEBUG: questions.answers length:', evaluation.questions?.answers?.length);
+              if (evaluation.questions?.answers && evaluation.questions.answers.length > 0) {
+                console.log('🔍 FRONTEND DEBUG: First 3 question answers:', evaluation.questions.answers.slice(0, 3));
+              }
+              return null;
+            })()}
+            
+            {evaluation.questions && evaluation.questions.answers && evaluation.questions.answers.length > 0 ? (
+              <div className="space-y-2.5">
+                {evaluation.questions.answers.map((answer) => {
+                  const hasDetailedFeedback = answer.original || answer.correctVersion || answer.errorReason || answer.feedback;
+                  
+                  return (
+                    <div key={answer.k} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-200 text-xs font-bold flex items-center justify-center">
+                          {answer.k}
+                        </div>
+                        <div className={cn(
+                          "text-xs font-semibold px-2.5 py-0.5 rounded whitespace-nowrap",
+                          answer.correctness === "Correct" ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30" :
+                          answer.correctness === "Partially Correct" ? "bg-amber-500/20 text-amber-200 border border-amber-400/30" :
+                          "bg-rose-500/20 text-rose-200 border border-rose-400/30"
+                        )}>
+                          {answer.correctness}
+                        </div>
+                      </div>
+                      
+                      {!hasDetailedFeedback && (
+                        <div className="text-xs text-white/50 italic">
+                          Detailed feedback not available for this evaluation. Submit again to get full feedback.
+                        </div>
+                      )}
+                      
+                      {answer.original && (
+                        <div className="rounded-lg bg-red-500/10 border border-red-400/20 p-2 mb-2">
+                          <div className="text-xs font-semibold text-red-200 mb-1">❌ Your Answer:</div>
+                          <div className="text-sm text-red-100 leading-relaxed">{formatText(answer.original)}</div>
+                        </div>
+                      )}
+                      
+                      {answer.correctVersion && answer.correctness !== "Correct" && (
+                        <div className="rounded-lg bg-emerald-500/10 border border-emerald-400/20 p-2 mb-2">
+                          <div className="text-xs font-semibold text-emerald-200 mb-1">✅ Correct Answer:</div>
+                          <div className="text-sm text-emerald-100 leading-relaxed">{formatText(answer.correctVersion)}</div>
+                        </div>
+                      )}
+                      
+                      {answer.errorReason && answer.errorReason !== "N/A" && answer.errorReason !== "—" && answer.errorReason.trim() !== "" && (
+                        <div className="rounded-lg bg-white/5 border border-white/10 p-2 mb-2">
+                          <div className="text-xs font-semibold text-white/90 mb-1">Reason:</div>
+                          <div className="text-sm text-white/75 leading-relaxed">{formatText(answer.errorReason)}</div>
+                        </div>
+                      )}
+                      
+                      {answer.feedback && answer.feedback !== "N/A" && answer.feedback !== "—" && answer.feedback.trim() !== "" && (
+                        <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-2">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span>💡</span>
+                            <div className="text-xs font-semibold text-amber-200">Feedback:</div>
+                          </div>
+                          <div className="text-sm text-amber-100 leading-relaxed">{formatText(answer.feedback)}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
+                <div className="text-sm text-white/60">
+                  {evaluation.questions && evaluation.questions.scorePercent !== undefined 
+                    ? `Questions were evaluated with a score of ${Math.round(evaluation.questions.scorePercent)}%, but detailed feedback is not available for this evaluation.`
+                    : "No question results available."}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeSection === "sentences" && (
           <>
             <div className="flex items-center justify-between mb-3 gap-2">
@@ -500,6 +757,17 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
                             <div className="rounded-lg bg-white/5 border border-white/10 p-2">
                               <div className="font-semibold text-white/90 mb-0.5">Reason:</div>
                               <div className="text-white/75 leading-relaxed">{formatText(s.errorReason)}</div>
+                            </div>
+                          )}
+                          {s.penalties && s.penalties.total && s.penalties.total > 0 && (
+                            <div className="rounded-lg bg-rose-500/10 border border-rose-400/20 p-2">
+                              <div className="font-semibold text-rose-200 mb-1">Penalties Applied: -{s.penalties.total}%</div>
+                              <div className="space-y-0.5 text-rose-100">
+                                {s.penalties.capitalization && <div>• Capitalization: -{s.penalties.capitalization}%</div>}
+                                {s.penalties.punctuation && <div>• Punctuation: -{s.penalties.punctuation}%</div>}
+                                {s.penalties.spelling && <div>• Spelling: -{s.penalties.spelling}%</div>}
+                                {s.penalties.grammar && <div>• Grammar: -{s.penalties.grammar}%</div>}
+                              </div>
                             </div>
                           )}
                           {s.tip && (
