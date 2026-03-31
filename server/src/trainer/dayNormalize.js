@@ -221,7 +221,11 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
 
   // ── pronunciation ────────────────────────────────────────────────────────────
   const pronWordsIn = extractPronunciationWords(pronRaw);
-  console.log(`    🔍 pronunciation words count: ${pronWordsIn.length}, sample: ${JSON.stringify(pronWordsIn[0])}`);
+  console.log(`    🔍 pronunciation raw data:`, JSON.stringify(pronRaw, null, 2));
+  console.log(`    🔍 pronunciation words extracted: ${pronWordsIn.length} items`);
+  if (pronWordsIn.length > 0) {
+    console.log(`    🔍 pronunciation sample:`, JSON.stringify(pronWordsIn[0], null, 2));
+  }
 
   const pronunciationWords = Array.from({ length: 5 }, (_, i) => {
     const x = pronWordsIn[i] || {};
@@ -258,25 +262,23 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       ""
     );
 
-    // Provide fallback if fields are empty
+    // Don't create fallback entries - return null if no valid data
     if (!word || word.length === 0) {
-      return {
-        word: `word${i + 1}`,
-        ipa: "/wɜːrd/",
-        stress: "single",
-        mis: "Common mispronunciation not available",
-        correct: "Correct pronunciation guidance not available",
-      };
+      console.log(`    ⚠️ pronunciation[${i}]: No valid word data, skipping`);
+      return null;
     }
 
-    return {
+    const result = {
       word: word,
       ipa: ipa || "/unknown/",
       stress: asString(x.stress || x.syllableStress || x.stressPattern || "") || "single",
       mis: mis || "No common mispronunciation noted",
       correct: correct || "Pronounce clearly",
     };
-  });
+    
+    console.log(`    ✓ pronunciation[${i}]:`, result.word, result.ipa);
+    return result;
+  }).filter(Boolean); // Remove null entries
 
   // ── warmUpCorrections ────────────────────────────────────────────────────────
   const warmUpCorrectionsIn = ensureArray(raw?.warmUpCorrections).filter(Boolean);

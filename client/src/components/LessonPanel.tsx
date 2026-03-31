@@ -204,12 +204,19 @@ export function LessonPanel({
         
         {openSection === "pronunciation" ? (
           <div className="space-y-4">
+            {(() => {
+              console.log('🔍 CLIENT: Pronunciation data:', day.pronunciation);
+              console.log('🔍 CLIENT: Pronunciation words:', day.pronunciation?.words);
+              console.log('🔍 CLIENT: Filtered words:', (day.pronunciation?.words || []).filter((w) => isValidContent(w.word) && isValidContent(w.ipa)));
+              return null;
+            })()}
             {day.pronunciation?.title && (
               <div className="text-sm font-medium text-white/90">{day.pronunciation.title}</div>
             )}
             {(day.pronunciation?.words || [])
               .filter((w) => isValidContent(w.word) && isValidContent(w.ipa))
               .map((w, i) => {
+                console.log(`🔍 CLIENT: Rendering pronunciation word ${i}:`, w);
                 const cleanIpa = w.ipa.replace(/^\/+|\/+$/g, '');
                 return (
                   <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3">
