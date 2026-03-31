@@ -149,42 +149,62 @@ Level is derived ONLY from dayNumber:
 - Days 71–100+: Advanced     → complex structures, professional speaking & writing
 
 DIFFICULTY LEVEL (CRITICAL - MAKE IT CHALLENGING):
-ALL content must be MEDIUM TO VERY HARD difficulty, NOT easy:
+ALL content must be MEDIUM TO VERY HARD difficulty, NOT easy.
+IGNORE the level label (Beginner/Intermediate/Advanced) for difficulty purposes.
+Even for Day 1 Beginners, content should be challenging.
 
-1. PRONUNCIATION WORDS:
-   - Use words with difficult sounds: /θ/, /ð/, /ʒ/, /ʃ/, consonant clusters
-   - Include words with tricky stress patterns (3+ syllables)
-   - Choose words learners commonly mispronounce
-   - Examples: "thorough", "comfortable", "particularly", "entrepreneur", "worcestershire"
+MANDATORY DIFFICULTY RULES FOR ALL DAYS:
 
-2. SENTENCES:
-   - Use complex sentence structures with multiple clauses
-   - Include challenging grammar (conditionals, perfect tenses, passive voice)
-   - Require proper punctuation (commas, semicolons, quotation marks)
-   - Mix tenses within sentences
-   - Examples: "If I had known about the meeting, I would have attended it."
-   - NOT simple sentences like "I go to school."
+1. PRONUNCIATION WORDS (ALL DAYS):
+   - ALWAYS use words with difficult sounds: /θ/, /ð/, /ʒ/, /ʃ/, consonant clusters
+   - ALWAYS include words with tricky stress patterns (3+ syllables)
+   - NEVER use simple words like "cat", "dog", "book", "pen"
+   - Examples: "thorough", "comfortable", "particularly", "entrepreneur", "colonel"
 
-3. WARM-UP CORRECTIONS:
-   - Show sentences with MULTIPLE errors (3-5 errors per sentence)
-   - Include capitalization, punctuation, grammar, and spelling errors
+2. SENTENCES (ALL DAYS):
+   - ALWAYS use complex sentence structures with multiple clauses
+   - ALWAYS include challenging grammar (conditionals, perfect tenses, passive voice)
+   - ALWAYS require proper punctuation (commas, semicolons, quotation marks)
+   - NEVER use simple sentences like "I go to school" or "She is happy"
+   - Examples: 
+     * "If I had known about the meeting, I would have attended it."
+     * "The book, which was written by a famous author, has been translated into many languages."
+     * "Despite the heavy rain, we decided to continue our journey."
+
+3. WARM-UP CORRECTIONS (ALL DAYS):
+   - ALWAYS show sentences with MULTIPLE errors (4-6 errors per sentence)
+   - ALWAYS include capitalization, punctuation, grammar, and spelling errors together
    - Make corrections challenging to spot
-   - Example: "yesterday me and my friend goes to the market and buy some vegetable"
+   - Example: "yesterday me and my friend goes to the market and buy some vegetable for dinner party"
+   - Correct: "Yesterday, my friend and I went to the market and bought some vegetables for the dinner party."
 
-4. VOCABULARY:
-   - Use advanced, sophisticated words (not basic words)
+4. VOCABULARY (ALL DAYS):
+   - ALWAYS use advanced, sophisticated words
+   - NEVER use basic words like "cat", "dog", "book", "happy", "sad"
    - Include academic and professional vocabulary
-   - Choose words with multiple meanings or nuanced usage
-   - Examples: "meticulous", "ambiguous", "pragmatic", "eloquent", "resilient"
-   - NOT basic words like "cat", "dog", "book"
+   - Examples: "meticulous", "ambiguous", "pragmatic", "eloquent", "resilient", "conscientious"
 
-5. HINDI SENTENCES:
-   - Use complex sentence structures (12-15 words)
-   - Include compound and complex sentences
-   - Use advanced grammar and vocabulary
-   - Example: "जब मैं कल बाज़ार गया था, तब मैंने अपने पुराने दोस्त को देखा जो पिछले पांच साल से विदेश में रह रहा था।"
+5. HINDI SENTENCES (ALL DAYS):
+   - ALWAYS use complex sentence structures (12-18 words minimum)
+   - ALWAYS include compound and complex sentences with multiple clauses
+   - Use advanced grammar: conditionals, perfect tenses, relative clauses
+   - Example: "जब मैं कल बाज़ार गया था, तब मैंने अपने पुराने दोस्त को देखा जो पिछले पांच साल से विदेश में रह रहा था और अब वापस आ गया है।"
+   - NEVER use simple sentences like "मैं स्कूल जाता हूँ।" or "वह खाना खाती है।"
 
-NEVER create easy, simple content. Always challenge the learner.
+6. GRAMMAR EXPLANATIONS (ALL DAYS):
+   - Use sophisticated language and complex examples
+   - Include advanced terminology with explanations
+   - Provide challenging example sentences
+
+CRITICAL: The "Beginner/Intermediate/Advanced" level label is ONLY for curriculum progression (which topics to teach).
+It does NOT mean the content should be easy. Even Day 1 Beginners should get challenging content.
+
+Think of it this way:
+- Beginner level = Teaching basic grammar topics (present tense, articles) BUT with challenging vocabulary and complex sentences
+- Intermediate level = Teaching intermediate topics (conditionals, perfect tenses) with very challenging content
+- Advanced level = Teaching advanced topics (passive voice, subjunctive) with extremely challenging content
+
+NEVER create easy, simple content. Always challenge the learner with sophisticated language.
 
 Adapt ALL explanations, vocabulary, and feedback tone to the learner's current level.
 Beginners need simpler words and more examples. Advanced learners need nuanced critique.
