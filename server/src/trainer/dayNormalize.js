@@ -103,11 +103,34 @@ function extractPronunciationWords(pronRaw) {
     pronRaw.list,
     pronRaw.examples,
     pronRaw.pronunciation,
-    pronRaw.focusWords, // Gemini returns this!
+    pronRaw.focusWords,
+    pronRaw.rules, // Gemini sometimes returns rules array
   ];
 
   for (const c of candidates) {
-    if (Array.isArray(c) && c.length > 0) return c;
+    if (Array.isArray(c) && c.length > 0) {
+      // If it's a rules array, extract words from exampleWords
+      if (c[0] && c[0].exampleWords && Array.isArray(c[0].exampleWords)) {
+        const extracted = [];
+        for (const rule of c) {
+          if (rule.exampleWords && Array.isArray(rule.exampleWords)) {
+            for (const wordStr of rule.exampleWords) {
+              // Parse "walks /wɔːks/ (sounds like 's')" format
+              const match = String(wordStr).match(/^(\w+)\s+\/([\w\s:ː]+)\//);
+              if (match) {
+                extracted.push({
+                  word: match[1],
+                  ipa: match[2],
+                  tip: rule.rule || rule.exampleSentence || '',
+                });
+              }
+            }
+          }
+        }
+        if (extracted.length > 0) return extracted;
+      }
+      return c;
+    }
     if (c && typeof c === "object" && !Array.isArray(c)) {
       const arr = ensureArray(c);
       if (arr.length > 0) return arr;
