@@ -34,49 +34,47 @@ The hindiTranslation section MUST contain EXACTLY 20 unique, meaningful Hindi se
 STRICT RULES FOR HINDI SENTENCES:
 1) Each sentence MUST be different and meaningful
 2) Each sentence MUST be in proper Devanagari script (not romanized)
-3) Each sentence MUST be appropriate for the learner's level:
-   - Beginner (Days 1-30): Simple everyday sentences (5-8 words)
-   - Intermediate (Days 31-70): Moderate complexity (8-12 words)
-   - Advanced (Days 71+): Complex sentences (12-15 words)
-4) Sentences MUST relate to today's grammar topic when possible
+3) Each sentence MUST be CHALLENGING and COMPLEX (NOT simple):
+   - Beginner (Days 1-30): Medium complexity (8-12 words) with compound sentences
+   - Intermediate (Days 31-70): High complexity (12-15 words) with multiple clauses
+   - Advanced (Days 71+): Very high complexity (15-20 words) with complex grammar
+4) Sentences MUST use advanced grammar and vocabulary
 5) NEVER use placeholder text like "यह एक उदाहरण वाक्य है"
 6) NEVER repeat the same sentence with different numbers
 7) Each sentence must have proper grammar and natural Hindi usage
 8) **IMPORTANT: Include a MIX of sentence types:**
-   - 9-11 Positive/Affirmative sentences (मैं स्कूल जाता हूँ।)
-   - 6-6 Negative sentences (मैं स्कूल नहीं जाता हूँ।)
-   - 3-5 Question sentences (क्या तुम स्कूल जाते हो?)
+   - 9-11 Positive/Affirmative sentences (complex, not simple)
+   - 6-6 Negative sentences (with complex negation)
+   - 3-5 Question sentences (complex questions with multiple parts)
 
-EXAMPLES OF GOOD HINDI SENTENCES (Beginner Level):
+EXAMPLES OF CHALLENGING HINDI SENTENCES (Beginner Level - MEDIUM DIFFICULTY):
 POSITIVE:
-- मैं रोज़ सुबह चाय पीता हूँ। (I drink tea every morning.)
-- वह स्कूल जाती है। (She goes to school.)
-- हम खाना खाते हैं। (We eat food.)
-- वे काम पर जाते हैं। (They go to work.)
-- मेरा नाम राज है। (My name is Raj.)
+- जब मैं सुबह उठता हूँ, तो सबसे पहले मैं चाय पीता हूँ और अखबार पढ़ता हूँ। (When I wake up in the morning, first I drink tea and read the newspaper.)
+- वह हर रोज़ स्कूल जाती है क्योंकि उसे पढ़ाई बहुत पसंद है। (She goes to school every day because she loves studying.)
+- हम सब मिलकर खाना खाते हैं और फिर टीवी देखते हैं। (We all eat food together and then watch TV.)
+- मेरे दोस्त जो दिल्ली में रहते हैं, वे अगले महीने मुझसे मिलने आएंगे। (My friends who live in Delhi will come to meet me next month.)
 
 NEGATIVE:
-- मैं कॉफी नहीं पीता हूँ। (I don't drink coffee.)
-- वह आज घर पर नहीं है। (She is not at home today.)
-- हम देर से नहीं आते हैं। (We don't come late.)
+- अगर बारिश होती है तो मैं घर से बाहर नहीं जाऊंगा और घर पर ही रहूंगा। (If it rains, I won't go out and will stay at home.)
+- वह आज ऑफिस नहीं गई क्योंकि उसकी तबीयत ठीक नहीं थी। (She didn't go to office today because she wasn't feeling well.)
+- मैंने अभी तक अपना होमवर्क पूरा नहीं किया है इसलिए मैं बाहर नहीं खेल सकता। (I haven't completed my homework yet, so I can't play outside.)
 
 QUESTIONS:
-- क्या तुम चाय पीते हो? (Do you drink tea?)
-- तुम कहाँ जाते हो? (Where do you go?)
-- वह क्या करती है? (What does she do?)
+- क्या तुम कल शाम को मेरे साथ सिनेमा देखने चलोगे या तुम्हारे पास कोई और काम है? (Will you come with me to watch a movie tomorrow evening, or do you have some other work?)
+- तुमने अपनी परीक्षा की तैयारी कैसे की और क्या तुम्हें लगता है कि तुम पास हो जाओगे? (How did you prepare for your exam and do you think you will pass?)
 
-EXAMPLES OF GOOD HINDI SENTENCES (Intermediate Level):
+EXAMPLES OF CHALLENGING HINDI SENTENCES (Intermediate Level - HIGH DIFFICULTY):
 POSITIVE:
-- मैं कल बाज़ार जाऊंगा और सब्ज़ियाँ खरीदूंगा। (I will go to the market tomorrow and buy vegetables.)
-- वह पिछले साल दिल्ली में रहती थी। (She used to live in Delhi last year.)
+- जब मैं कल बाज़ार गया था, तब मैंने अपने पुराने दोस्त को देखा जो पिछले पांच साल से विदेश में रह रहा था और अब वापस आ गया है। (When I went to the market yesterday, I saw my old friend who had been living abroad for the past five years and has now returned.)
+- मेरी बहन जो पिछले साल शादी करके मुंबई चली गई थी, वह अगले महीने हमसे मिलने आएगी और दो हफ्ते यहाँ रुकेगी। (My sister who got married last year and moved to Mumbai will come to meet us next month and stay here for two weeks.)
 
 NEGATIVE:
-- अगर बारिश होती है तो मैं घर से बाहर नहीं जाऊंगा। (If it rains, I won't go out.)
-- उसने अभी तक खाना नहीं खाया है। (He hasn't eaten food yet.)
+- अगर मैंने समय पर पढ़ाई की होती तो मैं परीक्षा में फेल नहीं होता और मुझे दोबारा परीक्षा नहीं देनी पड़ती। (If I had studied on time, I wouldn't have failed the exam and wouldn't have to take it again.)
+- उसने मुझे बताया नहीं था कि वह आज नहीं आ सकता, इसलिए मैं व्यर्थ में उसका इंतज़ार करता रहा। (He hadn't told me that he couldn't come today, so I kept waiting for him in vain.)
 
 QUESTIONS:
-- तुम कल कहाँ जाओगे? (Where will you go tomorrow?)
-- क्या तुमने अपना काम पूरा कर लिया? (Have you completed your work?)
+- क्या तुमने वह किताब पढ़ ली जो मैंने तुम्हें पिछले महीने दी थी और क्या तुम्हें वह पसंद आई? (Have you finished reading the book I gave you last month and did you like it?)
+- तुम कब से इस शहर में रह रहे हो और क्या तुम्हें यहाँ की संस्कृति और लोग पसंद हैं? (How long have you been living in this city and do you like the culture and people here?)
 
 FORMAT REQUIREMENT:
 hindiTranslation: {
@@ -94,17 +92,25 @@ The pronunciation section MUST contain EXACTLY 5 pronunciation words with comple
 
 STRICT RULES FOR PRONUNCIATION:
 1) Each word MUST have all 5 fields: word, ipa, stress, mis, correct
-2) word: The English word to practice (related to today's topic)
-3) ipa: IPA phonetic transcription (e.g., "/kæt/" for "cat")
-4) stress: Syllable stress pattern (e.g., "first", "second", "single")
+2) word: CHALLENGING English words with difficult sounds (NOT easy words like "cat", "dog")
+   - Use words with /θ/, /ð/, /ʒ/, /ʃ/, /ŋ/, consonant clusters, silent letters
+   - Examples: "thorough", "comfortable", "particularly", "entrepreneur", "colonel", "worcestershire"
+3) ipa: IPA phonetic transcription (e.g., "/ˈθʌrə/" for "thorough")
+4) stress: Syllable stress pattern (e.g., "first", "second", "third", "penultimate")
 5) mis: Common mispronunciation or mistake learners make (REQUIRED - be specific)
-   - Example: "Often pronounced as /ket/ instead of /kæt/"
-   - Example: "Learners often stress the wrong syllable"
-   - Example: "The 'th' sound is often replaced with 't' or 'd'"
-6) correct: Correct pronunciation guidance (REQUIRED - be helpful)
-   - Example: "Open your mouth wide for the /æ/ sound, like saying 'ah' at the doctor"
-   - Example: "Place your tongue between your teeth for the 'th' sound"
-   - Example: "Stress the first syllable: BEau-ti-ful, not beau-TI-ful"
+   - Example: "Often pronounced as /θəˈruː/ with stress on second syllable and wrong vowel"
+   - Example: "Learners often pronounce the 'l' in 'colonel' when it should be silent"
+   - Example: "The 'th' sound /θ/ is often replaced with 't' or 's'"
+6) correct: Correct pronunciation guidance (REQUIRED - be helpful and detailed)
+   - Example: "Stress the FIRST syllable: THOR-ough. The 'th' is /θ/ (tongue between teeth), and the ending is a schwa /ə/, not /uː/"
+   - Example: "Silent 'l': pronounce as KER-nel (/ˈkɜːrnəl/), rhymes with 'kernel' in computing"
+   - Example: "Place tongue between teeth for /θ/, don't use 't' or 's' sound"
+
+DIFFICULTY REQUIREMENT:
+- Choose words that are MEDIUM TO VERY HARD to pronounce
+- Include words with 3+ syllables when possible
+- Focus on sounds that non-native speakers struggle with
+- Avoid simple, easy words
 
 NEVER use placeholder text like:
 - "No common mispronunciation noted"
@@ -118,22 +124,22 @@ pronunciation: {
   title: "Pronunciation Focus: [Topic]",
   words: [
     {
-      word: "Cat",
-      ipa: "/kæt/",
-      stress: "single",
-      mis: "Often pronounced as /ket/ with a long 'a' sound instead of the short /æ/ sound",
-      correct: "Open your mouth wide for the /æ/ sound, similar to saying 'ah' at the doctor. Keep it short and sharp."
+      word: "Thorough",
+      ipa: "/ˈθʌrə/",
+      stress: "first",
+      mis: "Often mispronounced as /θəˈruː/ with stress on the second syllable and a long 'oo' sound at the end",
+      correct: "Stress the FIRST syllable strongly: THOR-ough. Use the /θ/ sound (tongue between teeth) at the start, and end with a weak schwa /ə/ sound, not 'oo'."
     },
     {
-      word: "Beautiful",
-      ipa: "/ˈbjuːtɪfəl/",
+      word: "Comfortable",
+      ipa: "/ˈkʌmftəbəl/",
       stress: "first",
-      mis: "Learners often stress the second syllable (beau-TI-ful) instead of the first",
-      correct: "Stress the first syllable strongly: BEau-ti-ful. The 'beau' part should be the loudest."
+      mis: "Learners often pronounce all syllables clearly: com-for-ta-ble, making it 4 syllables instead of 3",
+      correct: "Reduce it to 3 syllables: COMF-tuh-bul. The 'or' is barely pronounced, almost silent. Stress the first syllable."
     },
-    ... (exactly 5 words with complete details)
+    ... (exactly 5 challenging words with complete details)
   ],
-  tongueTwister: "[Optional tongue twister for practice]"
+  tongueTwister: "[Optional challenging tongue twister for practice]"
 }
 
 CURRICULUM LEVELS
@@ -141,6 +147,44 @@ Level is derived ONLY from dayNumber:
 - Days   1–30:  Beginner     → simple present / past / future fundamentals
 - Days  31–70:  Intermediate → mixed tenses, conditionals, modals
 - Days 71–100+: Advanced     → complex structures, professional speaking & writing
+
+DIFFICULTY LEVEL (CRITICAL - MAKE IT CHALLENGING):
+ALL content must be MEDIUM TO VERY HARD difficulty, NOT easy:
+
+1. PRONUNCIATION WORDS:
+   - Use words with difficult sounds: /θ/, /ð/, /ʒ/, /ʃ/, consonant clusters
+   - Include words with tricky stress patterns (3+ syllables)
+   - Choose words learners commonly mispronounce
+   - Examples: "thorough", "comfortable", "particularly", "entrepreneur", "worcestershire"
+
+2. SENTENCES:
+   - Use complex sentence structures with multiple clauses
+   - Include challenging grammar (conditionals, perfect tenses, passive voice)
+   - Require proper punctuation (commas, semicolons, quotation marks)
+   - Mix tenses within sentences
+   - Examples: "If I had known about the meeting, I would have attended it."
+   - NOT simple sentences like "I go to school."
+
+3. WARM-UP CORRECTIONS:
+   - Show sentences with MULTIPLE errors (3-5 errors per sentence)
+   - Include capitalization, punctuation, grammar, and spelling errors
+   - Make corrections challenging to spot
+   - Example: "yesterday me and my friend goes to the market and buy some vegetable"
+
+4. VOCABULARY:
+   - Use advanced, sophisticated words (not basic words)
+   - Include academic and professional vocabulary
+   - Choose words with multiple meanings or nuanced usage
+   - Examples: "meticulous", "ambiguous", "pragmatic", "eloquent", "resilient"
+   - NOT basic words like "cat", "dog", "book"
+
+5. HINDI SENTENCES:
+   - Use complex sentence structures (12-15 words)
+   - Include compound and complex sentences
+   - Use advanced grammar and vocabulary
+   - Example: "जब मैं कल बाज़ार गया था, तब मैंने अपने पुराने दोस्त को देखा जो पिछले पांच साल से विदेश में रह रहा था।"
+
+NEVER create easy, simple content. Always challenge the learner.
 
 Adapt ALL explanations, vocabulary, and feedback tone to the learner's current level.
 Beginners need simpler words and more examples. Advanced learners need nuanced critique.
