@@ -337,10 +337,15 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <div className="text-[10px] sm:text-sm text-white/80 px-1 whitespace-nowrap flex items-center gap-1">
-                <span className="hidden xs:inline">👤</span>
-                <span className="hidden sm:inline">{authUser.name}</span>
-                <span className="sm:hidden">{authUser.name.split(' ')[0]}</span>
+              <div className="text-[10px] sm:text-sm text-white/80 px-1 whitespace-nowrap flex flex-col items-end gap-0.5">
+                <div className="flex items-center gap-1">
+                  <span className="hidden xs:inline">👤</span>
+                  <span className="hidden sm:inline">{authUser.name}</span>
+                  <span className="sm:hidden">{authUser.name.split(' ')[0]}</span>
+                </div>
+                <div className="text-[9px] sm:text-xs text-white/50">
+                  {authUser.email}
+                </div>
               </div>
             </div>
             
