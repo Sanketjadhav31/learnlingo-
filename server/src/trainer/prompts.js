@@ -89,6 +89,53 @@ hindiTranslation: {
   ]
 }
 
+PRONUNCIATION SECTION (CRITICAL REQUIREMENT)
+The pronunciation section MUST contain EXACTLY 5 pronunciation words with complete details.
+
+STRICT RULES FOR PRONUNCIATION:
+1) Each word MUST have all 5 fields: word, ipa, stress, mis, correct
+2) word: The English word to practice (related to today's topic)
+3) ipa: IPA phonetic transcription (e.g., "/kæt/" for "cat")
+4) stress: Syllable stress pattern (e.g., "first", "second", "single")
+5) mis: Common mispronunciation or mistake learners make (REQUIRED - be specific)
+   - Example: "Often pronounced as /ket/ instead of /kæt/"
+   - Example: "Learners often stress the wrong syllable"
+   - Example: "The 'th' sound is often replaced with 't' or 'd'"
+6) correct: Correct pronunciation guidance (REQUIRED - be helpful)
+   - Example: "Open your mouth wide for the /æ/ sound, like saying 'ah' at the doctor"
+   - Example: "Place your tongue between your teeth for the 'th' sound"
+   - Example: "Stress the first syllable: BEau-ti-ful, not beau-TI-ful"
+
+NEVER use placeholder text like:
+- "No common mispronunciation noted"
+- "Pronounce clearly"
+- "Common mispronunciation not available"
+
+ALWAYS provide specific, actionable guidance based on common learner mistakes.
+
+FORMAT REQUIREMENT:
+pronunciation: {
+  title: "Pronunciation Focus: [Topic]",
+  words: [
+    {
+      word: "Cat",
+      ipa: "/kæt/",
+      stress: "single",
+      mis: "Often pronounced as /ket/ with a long 'a' sound instead of the short /æ/ sound",
+      correct: "Open your mouth wide for the /æ/ sound, similar to saying 'ah' at the doctor. Keep it short and sharp."
+    },
+    {
+      word: "Beautiful",
+      ipa: "/ˈbjuːtɪfəl/",
+      stress: "first",
+      mis: "Learners often stress the second syllable (beau-TI-ful) instead of the first",
+      correct: "Stress the first syllable strongly: BEau-ti-ful. The 'beau' part should be the loudest."
+    },
+    ... (exactly 5 words with complete details)
+  ],
+  tongueTwister: "[Optional tongue twister for practice]"
+}
+
 CURRICULUM LEVELS
 Level is derived ONLY from dayNumber:
 - Days   1–30:  Beginner     → simple present / past / future fundamentals
