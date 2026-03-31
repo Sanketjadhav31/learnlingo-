@@ -103,6 +103,7 @@ function extractPronunciationWords(pronRaw) {
     pronRaw.list,
     pronRaw.examples,
     pronRaw.pronunciation,
+    pronRaw.focusWords, // Gemini returns this!
   ];
 
   for (const c of candidates) {
@@ -249,6 +250,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       x.mistake || 
       x.incorrect || 
       x.commonMistake ||
+      x.tip || // Gemini sometimes puts guidance in 'tip'
       ""
     );
     const correct = asString(
@@ -259,6 +261,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       x.tip || 
       x.guidance ||
       x.howTo ||
+      x.advice ||
       ""
     );
 
