@@ -706,6 +706,28 @@ async function main() {
     }
   });
 
+  // GET /api/progress - Get user progress dashboard
+  app.get("/api/progress", authRequired, async (req, res) => {
+    const userId = req.userId;
+    console.log(`  📊 GET /api/progress - User: ${userId}`);
+    
+    try {
+      const { getUserProgress } = require("./trainer/progressService");
+      const state = await stateStore.getOrCreate(userId);
+      
+      const progress = getUserProgress(state);
+      
+      console.log(`  ✓ Progress retrieved - ${progress.daysCompleted}/${progress.totalDays} days (${progress.percentComplete}%)`);
+      res.json({ 
+        ok: true, 
+        progress,
+      });
+    } catch (error) {
+      console.error(`  ❌ Error retrieving progress:`, error);
+      res.status(500).json({ ok: false, reject: { message: "Failed to retrieve progress" } });
+    }
+  });
+
   // ============================================================================
   // TEST ROUTES - Cumulative Test System
   // ============================================================================

@@ -6,6 +6,7 @@
  */
 
 const { estimateTokens } = require('./contextBuilder');
+const { validateTokenBudget } = require('./tokenBudget');
 
 // Token budget limits per layer
 const TOKEN_BUDGETS = {

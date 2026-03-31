@@ -7,6 +7,7 @@
  */
 
 const { estimateTokens } = require('./contextBuilder');
+const { getTopicForDay, isRevisionDay, getRevisionScope } = require('./curriculum');
 
 /**
  * Build today's strategic brief from compressed context
@@ -23,25 +24,41 @@ function buildTodaysBrief(compressedContext, dayNumber) {
     
     const { learnerIdentity, curriculumTrajectory, diagnosticProfile, vocabularyMemory } = compressedContext;
     
-    // Compute primary goal from highest-frequency persistent weak area
-    const primaryGoal = computePrimaryGoal(diagnosticProfile);
+    // Get curriculum topic for today (from fixed spine)
+    const curriculumEntry = getTopicForDay(dayNumber);
+    const isReview = isRevisionDay(dayNumber);
+    
+    // Compute primary goal from curriculum + weak areas
+    const primaryGoal = computePrimaryGoal(diagnosticProfile, curriculumEntry, isReview);
     
     // Compute reinforcement goal from recently resolved areas
     const reinforcementGoal = computeReinforcementGoal(diagnosticProfile);
     
-    // Extract avoid topics from last 3 days
-    const avoidTopics = extractAvoidTopics(curriculumTrajectory, dayNumber);
+    // Extract avoid topics from last 3 days (only for normal days)
+    const avoidTopics = isReview ? [] : extractAvoidTopics(curriculumTrajectory, dayNumber);
+    
+    // Get week topics for review days
+    const weekTopics = isReview ? getRevisionScope(dayNumber) : null;
     
     // Compute difficulty target based on learning velocity
     const difficultyTarget = computeDifficultyTarget(learnerIdentity);
     
     // Generate sentence design instruction
-    const sentenceDesignInstruction = generateSentenceDesignInstruction(diagnosticProfile);
+    const sentenceDesignInstruction = generateSentenceDesignInstruction(diagnosticProfile, isReview);
     
     // Generate vocabulary instruction
     const vocabularyInstruction = generateVocabularyInstruction(vocabularyMemory);
     
     const brief = {
+      todaysTopic: curriculumEntry.topic,
+      grammarFocus: curriculumEntry.grammarFocus || curriculumEntry.topic,
+      subTopics: curriculumEntry.subTopics || [],
+      skillFocus: curriculumEntry.skillFocus || "mixed",
+      category: curriculumEntry.category,
+      weekNumber: curriculumEntry.weekNumber,
+      dayInWeek: curriculumEntry.dayInWeek,
+      isReviewDay: isReview,
+      weekTopicsToReview: weekTopics,
       primaryGoal,
       reinforcementGoal,
       avoidTopics,
@@ -50,14 +67,17 @@ function buildTodaysBrief(compressedContext, dayNumber) {
       vocabularyInstruction,
     };
     
-    // Enforce token budget (max 150 tokens)
+    // Enforce token budget (max 350 tokens for normal days, 400 for review days with more metadata)
     const tokens = estimateTokens(brief);
-    if (tokens > 150) {
-      console.warn(`⚠ TodaysBrief exceeds token budget: ${tokens} > 150`);
+    const maxTokens = isReview ? 400 : 350;
+    if (tokens > maxTokens) {
+      console.warn(`⚠ TodaysBrief exceeds token budget: ${tokens} > ${maxTokens}`);
       // Truncate instructions if needed
       brief.sentenceDesignInstruction = brief.sentenceDesignInstruction.slice(0, 100);
       brief.vocabularyInstruction = brief.vocabularyInstruction.slice(0, 80);
     }
+    
+    console.log(`    📋 Brief: ${isReview ? 'REVIEW' : 'NORMAL'} - ${curriculumEntry.topic}`);
     
     return brief;
   } catch (error) {
@@ -67,23 +87,29 @@ function buildTodaysBrief(compressedContext, dayNumber) {
 }
 
 /**
- * Compute primary goal from diagnostic profile
+ * Compute primary goal from curriculum + diagnostic profile
  * @param {Object} diagnosticProfile - Diagnostic profile
+ * @param {Object} curriculumEntry - Curriculum entry for today
+ * @param {boolean} isReview - Whether today is a review day
  * @returns {string} Primary goal
  */
-function computePrimaryGoal(diagnosticProfile) {
-  if (!diagnosticProfile || !diagnosticProfile.persistentWeakAreas) {
-    return "Build foundational English skills";
+function computePrimaryGoal(diagnosticProfile, curriculumEntry, isReview) {
+  if (isReview) {
+    return `Review and consolidate all topics from this week`;
   }
   
-  const weakAreas = diagnosticProfile.persistentWeakAreas;
-  if (weakAreas.length === 0) {
-    return "Continue strengthening overall English proficiency";
+  // Primary goal is always the curriculum topic
+  let goal = `Teach: ${curriculumEntry.topic}`;
+  
+  // Add weak area weaving if applicable
+  if (diagnosticProfile && diagnosticProfile.persistentWeakAreas && diagnosticProfile.persistentWeakAreas.length > 0) {
+    const topWeakArea = diagnosticProfile.persistentWeakAreas[0];
+    if (topWeakArea.severity === "high") {
+      goal += ` (weave in ${topWeakArea.area} practice implicitly)`;
+    }
   }
   
-  // Target the highest-frequency weak area
-  const topWeakArea = weakAreas[0];
-  return `Focus on improving ${topWeakArea.area}`;
+  return goal;
 }
 
 /**
@@ -108,17 +134,17 @@ function computeReinforcementGoal(diagnosticProfile) {
 
 /**
  * Extract topics to avoid from curriculum trajectory
- * @param {Array} curriculumTrajectory - Curriculum trajectory
+ * @param {Object} curriculumTrajectory - Curriculum trajectory with rolling window
  * @param {number} dayNumber - Current day number
  * @returns {Array<string>} Topics to avoid
  */
 function extractAvoidTopics(curriculumTrajectory, dayNumber) {
-  if (!curriculumTrajectory || curriculumTrajectory.length === 0) {
+  if (!curriculumTrajectory || !curriculumTrajectory.recentDays) {
     return [];
   }
   
-  // Get topics from last 3 days
-  const recentTopics = curriculumTrajectory
+  // Get topics from last 3 days from rolling window
+  const recentTopics = curriculumTrajectory.recentDays
     .filter(entry => entry.day >= dayNumber - 3 && entry.day < dayNumber)
     .map(entry => entry.topic)
     .filter(Boolean);
@@ -152,9 +178,14 @@ function computeDifficultyTarget(learnerIdentity) {
 /**
  * Generate sentence design instruction from diagnostic profile
  * @param {Object} diagnosticProfile - Diagnostic profile
+ * @param {boolean} isReview - Whether today is a review day
  * @returns {string} Sentence design instruction
  */
-function generateSentenceDesignInstruction(diagnosticProfile) {
+function generateSentenceDesignInstruction(diagnosticProfile, isReview) {
+  if (isReview) {
+    return "Design sentences that test all grammar topics from this week - mix them evenly";
+  }
+  
   if (!diagnosticProfile || !diagnosticProfile.persistentWeakAreas) {
     return "Design sentences with varied grammar structures for comprehensive practice";
   }
@@ -196,14 +227,24 @@ function generateVocabularyInstruction(vocabularyMemory) {
  * @returns {Object} Default brief
  */
 function getDefaultBrief(dayNumber) {
-  const level = dayNumber <= 30 ? "Beginner" : dayNumber <= 70 ? "Intermediate" : "Advanced";
+  const curriculumEntry = getTopicForDay(dayNumber);
+  const isReview = isRevisionDay(dayNumber);
+  const weekTopics = isReview ? getRevisionScope(dayNumber) : null;
   
   return {
-    primaryGoal: `Build foundational ${level} English skills`,
+    todaysTopic: curriculumEntry.topic,
+    grammarFocus: curriculumEntry.grammarFocus || curriculumEntry.topic,
+    subTopics: curriculumEntry.subTopics || [],
+    skillFocus: curriculumEntry.skillFocus || "mixed",
+    isReviewDay: isReview,
+    weekTopicsToReview: weekTopics,
+    primaryGoal: isReview ? "Review and consolidate all topics from this week" : `Teach: ${curriculumEntry.topic}`,
     reinforcementGoal: "No specific reinforcement needed",
     avoidTopics: [],
     difficultyTarget: "Standard difficulty - maintain steady progression",
-    sentenceDesignInstruction: "Design sentences with varied grammar structures for comprehensive practice",
+    sentenceDesignInstruction: isReview 
+      ? "Design sentences that test all grammar topics from this week - mix them evenly"
+      : "Design sentences with varied grammar structures for comprehensive practice",
     vocabularyInstruction: "Introduce 10 new words appropriate for the learner's level",
   };
 }

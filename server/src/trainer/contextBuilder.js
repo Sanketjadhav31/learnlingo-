@@ -91,34 +91,57 @@ function computeConfidenceSignal(score) {
 }
 
 /**
- * Build Curriculum Trajectory layer
+ * Build Curriculum Trajectory layer with rolling window
+ * ONLY keeps last 6 days in detail, older days compressed to summary stats
  * @param {Object} state - Current user state
- * @returns {Array} Curriculum trajectory entries
+ * @returns {Object} Curriculum trajectory with rolling window
  */
 function buildCurriculumTrajectory(state) {
   const grammarCoveredByDay = state.grammarCoveredByDay || {};
   const scoreHistory = state.scoreHistory || [];
+  const currentDay = state.currentDay || 1;
   
-  const trajectory = Object.entries(grammarCoveredByDay).map(([day, topic]) => {
-    const dayNum = parseInt(day);
-    const dayScore = scoreHistory.find(s => s.dayNumber === dayNum);
+  // Rolling window: keep last 6 days only
+  const windowStart = Math.max(1, currentDay - 6);
+  
+  // Recent days (last 6 days) - full detail
+  const recentDays = [];
+  for (let day = windowStart; day < currentDay; day++) {
+    const topic = grammarCoveredByDay[String(day)];
+    const dayScore = scoreHistory.find(s => s.dayNumber === day);
     
-    return {
-      day: dayNum,
-      topic: topic,
-      score: dayScore?.overallPercent || null,
-      confidence: dayScore ? computeConfidenceSignal(dayScore.overallPercent) : "unknown",
-    };
-  }).sort((a, b) => a.day - b.day);
+    if (topic) {
+      recentDays.push({
+        day,
+        topic,
+        score: dayScore?.overallPercent || null,
+        confidence: dayScore ? computeConfidenceSignal(dayScore.overallPercent) : "unknown",
+      });
+    }
+  }
   
-  // Enforce token budget (max 200 tokens at Day 30)
+  // Older days (before window) - compressed summary only
+  const olderDays = scoreHistory.filter(s => s.dayNumber < windowStart);
+  const olderSummary = olderDays.length > 0 ? {
+    daysCompleted: olderDays.length,
+    averageScore: Math.round(olderDays.reduce((sum, s) => sum + (s.overallPercent || 0), 0) / olderDays.length),
+    topicsCount: Object.keys(grammarCoveredByDay).filter(d => parseInt(d) < windowStart).length,
+  } : null;
+  
+  const trajectory = {
+    recentDays, // Last 6 days only
+    olderSummary, // Compressed stats for days before window
+  };
+  
+  // Enforce token budget (max 200 tokens)
   const tokens = estimateTokens(trajectory);
   if (tokens > 200) {
     console.warn(`⚠ CurriculumTrajectory exceeds token budget: ${tokens} > 200`);
-    // Prune oldest entries if needed
-    const targetSize = Math.floor(trajectory.length * 0.7);
-    return trajectory.slice(-targetSize);
+    // Further prune if needed (keep last 4 days instead of 6)
+    trajectory.recentDays = recentDays.slice(-4);
   }
+  
+  console.log(`    📊 Trajectory: ${recentDays.length} recent days, ${olderSummary?.daysCompleted || 0} older days compressed`);
   
   return trajectory;
 }

@@ -43,6 +43,23 @@ const UserStateSchema = new mongoose.Schema(
     lastEvaluation: { type: mongoose.Schema.Types.Mixed, default: null },
     currentTest: { type: mongoose.Schema.Types.Mixed, default: null },
     submissionDraft: { type: mongoose.Schema.Types.Mixed, default: {} },
+    
+    // NEW: Curriculum tracking (from curriculum.js, not AI-generated)
+    currentCurriculumTopic: { type: String, default: null },
+    currentWeek: { type: Number, default: 1 },
+    dayInWeek: { type: Number, default: 1 },
+    
+    // NEW: Revision day scores stored separately
+    revisionScores: { type: mongoose.Schema.Types.Mixed, default: [] },
+    
+    // NEW: Compressed learner context (5-layer structure)
+    compressedLearnerContext: { type: mongoose.Schema.Types.Mixed, default: null },
+    
+    // NEW: Track when day content was generated (for cache invalidation)
+    dayContentGeneratedDate: { type: String, default: null },
+    
+    // NEW: Track last day completion date (for day advancement logic)
+    lastDayCompletionDate: { type: String, default: null },
   },
   { timestamps: true }
 );

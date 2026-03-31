@@ -4,9 +4,10 @@ const { SYSTEM_TRAINER_PROMPT } = require("./prompts");
 const { normalizeDayContent } = require("./dayNormalize");
 const { buildTodaysBrief } = require("./briefBuilder");
 const { validateCompressedContext } = require("./contextValidator");
+const { getTopicForDay, isRevisionDay, getRevisionScope } = require("./curriculum");
 
 function determineDayType(dayNumber) {
-  return dayNumber % 7 === 0 ? "weekly_review" : "normal";
+  return isRevisionDay(dayNumber) ? "weekly_review" : "normal";
 }
 
 function levelFromDay(dayNumber) {
@@ -182,8 +183,21 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
   }
 
   const dayType = determineDayType(dayNumber);
-  const level = levelFromDay(dayNumber);
-  console.log(`    📊 Day type: ${dayType}, Level: ${level}`);
+  const curriculumEntry = getTopicForDay(dayNumber);
+  
+  if (!curriculumEntry) {
+    throw new Error(`No curriculum entry found for day ${dayNumber}`);
+  }
+  
+  const level = curriculumEntry.level;
+  const todaysTopic = curriculumEntry.topic;
+  const isReview = isRevisionDay(dayNumber);
+  const weekTopics = isReview ? getRevisionScope(dayNumber) : null;
+  
+  console.log(`    📊 Day type: ${dayType}, Level: ${level}, Topic: ${todaysTopic}`);
+  if (isReview) {
+    console.log(`    📚 Review day - covering ${weekTopics.length} topics from this week`);
+  }
 
   const vocabWeekWords = (() => {
     if (!state || !state.vocabByDay) return [];
@@ -240,6 +254,9 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
     dayNumber,
     dayType,
     level,
+    todaysTopic, // From curriculum spine
+    isReviewDay: isReview,
+    weekTopicsToReview: weekTopics, // For review days
     submissionTemplateExactValues: {
       type: dayType,
       sentenceCount,
@@ -251,6 +268,7 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
       vocabQuizCount,
     },
     curriculumRules: {
+      strictTopicAdherence: "You MUST teach the exact topic specified in todaysTopic. Do not deviate or improvise.",
       oneDayAtATime: true,
       warmUpCorrectionsCount: 3,
       requiredVocabularyWordCount: 10,
@@ -282,6 +300,8 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
     },
     strictInstructionForSubmissionTemplate:
       "submissionTemplate.type MUST equal dayType, and submissionTemplate MUST include the exact numeric values for sentenceCount/hindiTranslationCount/questionCount/listeningCount/reflectionCount/conversationMinTurns/vocabQuizCount. hindiTranslation MUST contain exactly 20 simple Hindi sentences (in Devanagari script) that the learner will translate to English. These should be everyday sentences appropriate for the learner's level.",
+    strictInstructionForGrammarFocus:
+      `grammarFocus MUST be set to: "${todaysTopic}". This is the ONLY topic you should teach today. ${isReview ? 'Since this is a review day, create content that tests all topics from this week.' : 'Do not mix in other grammar topics.'}`,
     // Strong hint to prevent schema-missing output.
     requiredOutputKeys: [
       "dayNumber",

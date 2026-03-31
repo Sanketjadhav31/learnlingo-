@@ -173,13 +173,15 @@ function extractPronunciationWords(pronRaw) {
 /**
  * Extract wordOfDay items from whatever shape Gemini returns.
  * Handles: { wordOfDay:[...] }, { words:[...] }, { vocabulary:[...] },
- * numeric-keyed objects, plain arrays.
+ * { keyVocabulary:[...] }, { newWords:[...] }, numeric-keyed objects, plain arrays.
  */
 function extractWordOfDay(vocabRaw) {
   if (!vocabRaw) return [];
 
   const candidates = [
     vocabRaw.wordOfDay,
+    vocabRaw.newWords,        // NEW: Gemini uses this
+    vocabRaw.keyVocabulary,   // NEW: Gemini sometimes uses this
     vocabRaw.words,
     vocabRaw.vocabulary,
     vocabRaw.items,
@@ -187,17 +189,32 @@ function extractWordOfDay(vocabRaw) {
     vocabRaw.vocabList,
   ];
 
-  for (const c of candidates) {
-    if (Array.isArray(c) && c.length > 0) return c;
+  console.log('🔍 extractWordOfDay - checking candidates...');
+  console.log('🔍 vocabRaw keys:', Object.keys(vocabRaw).join(', '));
+
+  for (let i = 0; i < candidates.length; i++) {
+    const c = candidates[i];
+    if (Array.isArray(c) && c.length > 0) {
+      console.log(`✅ Found vocabulary in candidate ${i}, length: ${c.length}`);
+      console.log(`🔍 First item:`, JSON.stringify(c[0], null, 2));
+      return c;
+    }
     if (c && typeof c === "object" && !Array.isArray(c)) {
       const arr = ensureArray(c);
-      if (arr.length > 0) return arr;
+      if (arr.length > 0) {
+        console.log(`✅ Converted candidate ${i} to array, length: ${arr.length}`);
+        return arr;
+      }
     }
   }
 
   const asArr = ensureArray(vocabRaw);
-  if (asArr.length > 0) return asArr;
+  if (asArr.length > 0) {
+    console.log(`✅ Using vocabRaw as array, length: ${asArr.length}`);
+    return asArr;
+  }
 
+  console.log('⚠️ No vocabulary found in any candidate');
   return [];
 }
 

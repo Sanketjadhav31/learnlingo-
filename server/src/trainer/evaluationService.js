@@ -948,6 +948,13 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
     lastEvaluation: evaluation,
   };
 
+  // Update curriculum tracking fields
+  const { getTopicForDay } = require('./curriculum');
+  const curriculumEntry = getTopicForDay(dayContent.dayNumber);
+  nextState.currentCurriculumTopic = curriculumEntry.topic;
+  nextState.currentWeek = curriculumEntry.weekNumber;
+  nextState.dayInWeek = curriculumEntry.dayInWeek;
+
   // Only add to scoreHistory when day advances (pass + new calendar day)
   // This prevents duplicate entries for same day
   const willAdvanceDay = strong && (!lastCompletionDate || lastCompletionDate !== todayIST);
@@ -970,6 +977,19 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
       },
     ];
     console.log(`    ✓ Added to scoreHistory - Day ${dayContent.dayNumber} completed`);
+    
+    // Store revision scores separately for revision days
+    if (dayContent.dayType === "weekly_review") {
+      const revisionScore = {
+        revisionDay: dayContent.dayNumber,
+        weekNumber: curriculumEntry.weekNumber,
+        overallRevisionScore: evaluation.overallPercent,
+        topicBreakdown: evaluation.scoreBreakdown,
+        date: new Date().toISOString(),
+      };
+      nextState.revisionScores = [...(state.revisionScores || []), revisionScore];
+      console.log(`    ✓ Added revision score for Week ${curriculumEntry.weekNumber}`);
+    }
   } else {
     // Keep existing scoreHistory unchanged
     nextState.scoreHistory = state.scoreHistory || [];

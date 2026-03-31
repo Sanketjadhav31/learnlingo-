@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "node src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "test": "node test-curriculum.js && node test-integration.js && node test-e2e.js",
+    "test:curriculum": "node test-curriculum.js",
+    "test:integration": "node test-integration.js",
+    "test:e2e": "node test-e2e.js"
   },
   "keywords": [],
   "author": "",
