@@ -886,6 +886,13 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
   const strong = evaluation.overallPercent >= passThreshold;
   console.log(`    ${strong ? "✓" : "❌"} Performance: ${evaluation.tier} (${evaluation.overallPercent}%)`);
 
+  // Calculate IST timezone variables upfront (used for day advancement and scoreHistory)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+  const istTime = new Date(now.getTime() + istOffset);
+  const lastCompletionDate = state.lastDayCompletionDate || null;
+  const todayIST = istTime.toISOString().split('T')[0]; // YYYY-MM-DD format
+
   const previousStreak = state.tracker.streak || 0;
   const shieldEligible = previousStreak >= 7 && !state.streakShieldUsed;
   const shieldApplied = !strong && shieldEligible;
@@ -941,22 +948,33 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
     lastEvaluation: evaluation,
   };
 
-  nextState.scoreHistory = [
-    ...(state.scoreHistory || []),
-    {
-      dayNumber: dayContent.dayNumber,
-      dayType: dayContent.dayType,
-      date: new Date().toISOString(),
-      theme: dayContent.dayTheme,
-      grammarFocus: dayContent.grammarFocus,
-      overallPercent: evaluation.overallPercent,
-      tier: evaluation.tier,
-      passFail: evaluation.passFail,
-      scoreBreakdown: evaluation.scoreBreakdown,
-      // Store full evaluation for history viewing
-      fullEvaluation: evaluation,
-    },
-  ];
+  // Only add to scoreHistory when day advances (pass + new calendar day)
+  // This prevents duplicate entries for same day
+  const willAdvanceDay = strong && (!lastCompletionDate || lastCompletionDate !== todayIST);
+  
+  if (willAdvanceDay) {
+    nextState.scoreHistory = [
+      ...(state.scoreHistory || []),
+      {
+        dayNumber: dayContent.dayNumber,
+        dayType: dayContent.dayType,
+        date: new Date().toISOString(),
+        theme: dayContent.dayTheme,
+        grammarFocus: dayContent.grammarFocus,
+        overallPercent: evaluation.overallPercent,
+        tier: evaluation.tier,
+        passFail: evaluation.passFail,
+        scoreBreakdown: evaluation.scoreBreakdown,
+        // Store full evaluation for history viewing
+        fullEvaluation: evaluation,
+      },
+    ];
+    console.log(`    ✓ Added to scoreHistory - Day ${dayContent.dayNumber} completed`);
+  } else {
+    // Keep existing scoreHistory unchanged
+    nextState.scoreHistory = state.scoreHistory || [];
+    console.log(`    ℹ scoreHistory unchanged - Day not advanced (pass=${strong}, canAdvance=${willAdvanceDay})`);
+  }
 
   // Weak areas: used for next day generation.
   nextState.weakAreas = evaluation.weakAreas;
@@ -1017,15 +1035,7 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
 
   // Day lock: only advance if strong AND it's a new calendar day in IST.
   if (strong) {
-    // Check if we should advance based on IST timezone
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const istTime = new Date(now.getTime() + istOffset);
-    
-    // Get the last completion date in IST
-    const lastCompletionDate = state.lastDayCompletionDate || null;
-    const todayIST = istTime.toISOString().split('T')[0]; // YYYY-MM-DD format
-    
+    // Check if we should advance based on IST timezone (already calculated above)
     // Only advance if it's a different day in IST or first time completing
     const canAdvanceToday = !lastCompletionDate || lastCompletionDate !== todayIST;
     

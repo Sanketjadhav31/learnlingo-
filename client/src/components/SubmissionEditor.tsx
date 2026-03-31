@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { DayContent } from "../lib/types";
 import { saveDraft } from "../lib/api";
+import { ResetButton } from "./ResetButton";
 
 // Helper function to format prompt text - convert markdown to styled spans
 function formatPromptText(text: string): React.ReactNode {
@@ -282,6 +283,61 @@ export function SubmissionEditor(props: {
     }));
   };
 
+  const resetField = async (field: keyof SubmissionData) => {
+    const newData = { ...formData };
+    if (field === 'writing' || field === 'speaking') {
+      newData[field] = '';
+    } else if (field === 'conversation') {
+      newData[field] = [];
+    } else if (field === 'sentences') {
+      newData[field] = Array(props.day.submissionTemplate.sentenceCount).fill('');
+    } else if (field === 'hindiTranslation') {
+      newData[field] = Array(20).fill('');
+    } else if (field === 'questions') {
+      newData[field] = Array(props.day.submissionTemplate.questionCount).fill('');
+    } else if (field === 'listening') {
+      newData[field] = Array(props.day.submissionTemplate.listeningCount).fill('');
+    } else if (field === 'reflection') {
+      newData[field] = Array(props.day.submissionTemplate.reflectionCount).fill('');
+    } else if (field === 'vocabQuiz' && newData.vocabQuiz) {
+      newData[field] = Array(props.day.submissionTemplate.vocabQuizCount || 0).fill('');
+    }
+    setFormData(newData);
+    const newText = buildSubmissionText(newData, props.day);
+    props.onChange(newText);
+    try {
+      await saveDraft(newText);
+      console.log(`✓ Field "${field}" reset and saved`);
+    } catch (error) {
+      console.error(`Failed to save reset for "${field}":`, error);
+    }
+  };
+
+  const resetAll = async () => {
+    const emptyData: SubmissionData = {
+      writing: "",
+      speaking: "",
+      conversation: [],
+      sentences: Array(props.day.submissionTemplate.sentenceCount).fill(""),
+      hindiTranslation: Array(20).fill(""),
+      questions: Array(props.day.submissionTemplate.questionCount).fill(""),
+      listening: Array(props.day.submissionTemplate.listeningCount).fill(""),
+      reflection: Array(props.day.submissionTemplate.reflectionCount).fill(""),
+    };
+    if (props.day.dayType === "weekly_review" && props.day.submissionTemplate.vocabQuizCount) {
+      emptyData.vocabQuiz = Array(props.day.submissionTemplate.vocabQuizCount).fill("");
+    }
+    setFormData(emptyData);
+    const newText = buildSubmissionText(emptyData, props.day);
+    props.onChange(newText);
+    try {
+      await saveDraft(newText);
+      console.log("✓ All fields reset and saved");
+    } catch (error) {
+      console.error("Failed to save reset:", error);
+    }
+  };
+
   const [activeSection, setActiveSection] = useState<string>("writing");
 
   const SUBMISSION_SECTIONS = [
@@ -367,6 +423,11 @@ export function SubmissionEditor(props: {
           )}
           
           <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
+            <ResetButton 
+              onReset={resetAll} 
+              label="Reset All"
+              className="flex-1 sm:flex-none text-[10px] sm:text-xs px-2 sm:px-3 py-1.5 sm:py-2"
+            />
             <button
               type="button"
               onClick={() => setMode("text")}
@@ -408,7 +469,10 @@ export function SubmissionEditor(props: {
         <div className="rounded-lg border border-white/10 bg-black/10 p-4">
           {activeSection === "writing" && (
             <div className="space-y-2">
-              <div className="text-sm font-semibold text-white">Writing Task</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-white">Writing Task</div>
+                <ResetButton onReset={() => resetField("writing")} label="Reset" className="text-[10px] px-2 py-1" />
+              </div>
               <div className="text-sm text-white/70 bg-black/20 p-3 rounded border border-white/5 max-h-32 overflow-y-auto leading-relaxed">
                 {formatPromptText(props.day.writingTask.prompt)}
               </div>
@@ -423,7 +487,10 @@ export function SubmissionEditor(props: {
           
           {activeSection === "speaking" && (
             <div className="space-y-2">
-              <div className="text-sm font-semibold text-white">Speaking Task</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-white">Speaking Task</div>
+                <ResetButton onReset={() => resetField("speaking")} label="Reset" className="text-[10px] px-2 py-1" />
+              </div>
               <div className="text-sm text-white/70 bg-black/20 p-3 rounded border border-white/5 max-h-32 overflow-y-auto leading-relaxed">
                 {formatPromptText(props.day.speakingTask.prompt)}
               </div>
@@ -438,7 +505,10 @@ export function SubmissionEditor(props: {
           
           {activeSection === "conversation" && (
             <div className="space-y-2">
-              <div className="text-sm font-semibold text-white">Conversation Practice ({template.conversationMinTurns} turns)</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-white">Conversation Practice ({template.conversationMinTurns} turns)</div>
+                <ResetButton onReset={() => resetField("conversation")} label="Reset" className="text-[10px] px-2 py-1" />
+              </div>
               <div className="text-sm text-white/70 bg-black/20 p-3 rounded border border-white/5 max-h-32 overflow-y-auto leading-relaxed">
                 {formatPromptText(props.day.conversationTask.prompt)}
               </div>
@@ -471,7 +541,10 @@ export function SubmissionEditor(props: {
           
           {activeSection === "sentences" && (
             <div className="space-y-2">
-              <div className="text-sm font-semibold text-white">Sentence Practice ({template.sentenceCount} sentences)</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-white">Sentence Practice ({template.sentenceCount} sentences)</div>
+                <ResetButton onReset={() => resetField("sentences")} label="Reset" className="text-[10px] px-2 py-1" />
+              </div>
               {props.day.sentencePractice.items.map((item, i) => {
                 // Clean up the prompt - if it's too long or contains instructions, simplify it
                 let displayPrompt = item.prompt;
@@ -496,7 +569,10 @@ export function SubmissionEditor(props: {
           
           {activeSection === "hindi" && (
             <div className="space-y-2">
-              <div className="text-sm font-semibold text-white">Hindi to English Translation (20 sentences)</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-white">Hindi to English Translation (20 sentences)</div>
+                <ResetButton onReset={() => resetField("hindiTranslation")} label="Reset" className="text-[10px] px-2 py-1" />
+              </div>
               <div className="text-xs text-white/60 bg-indigo-500/10 border border-indigo-400/30 rounded p-2 mb-3">
                 📝 Translate these Hindi sentences to English. Write natural, grammatically correct English sentences.
               </div>
@@ -518,7 +594,10 @@ export function SubmissionEditor(props: {
           
           {activeSection === "questions" && (
             <div className="space-y-2">
-              <div className="text-sm font-semibold text-white">Questions ({template.questionCount} questions)</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-white">Questions ({template.questionCount} questions)</div>
+                <ResetButton onReset={() => resetField("questions")} label="Reset" className="text-[10px] px-2 py-1" />
+              </div>
               {props.day.questions.items.slice(0, template.questionCount).map((item, i) => (
                 <div key={i} className="space-y-1">
                   <div className="text-xs text-white/60">{item.idx}. {item.prompt}</div>
@@ -535,7 +614,10 @@ export function SubmissionEditor(props: {
           
           {activeSection === "listening" && (
             <div className="space-y-3">
-              <div className="text-sm font-semibold text-white">Listening Comprehension ({template.listeningCount} questions)</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-white">Listening Comprehension ({template.listeningCount} questions)</div>
+                <ResetButton onReset={() => resetField("listening")} label="Reset" className="text-[10px] px-2 py-1" />
+              </div>
               
               {/* Transcript Section */}
               <div className="rounded-lg border border-indigo-400/30 bg-indigo-500/10 p-4">
@@ -566,7 +648,10 @@ export function SubmissionEditor(props: {
           
           {activeSection === "reflection" && (
             <div className="space-y-2">
-              <div className="text-sm font-semibold text-white">Reflection (required, not graded)</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-white">Reflection (required, not graded)</div>
+                <ResetButton onReset={() => resetField("reflection")} label="Reset" className="text-[10px] px-2 py-1" />
+              </div>
               {Array.from({ length: template.reflectionCount }, (_, i) => (
                 <div key={i} className="space-y-1">
                   <div className="text-xs text-white/60">{i + 1}. Reflection prompt</div>
