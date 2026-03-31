@@ -231,19 +231,19 @@ export default function App() {
     setConfirmState({
       isOpen: true,
       title: "Reset Today's Work?",
-      message: "This will clear:\n\n• Today's submission\n• Today's evaluation\n• Today's draft\n• Section progress\n\nYour overall progress (streak, completed days) will NOT be affected.\n\nContinue?",
+      message: "This will clear:\n\n• Today's submission\n• Today's evaluation\n• Today's draft\n• Section progress\n• Force regenerate day content (to see latest fixes)\n\nYour overall progress (streak, completed days) will NOT be affected.\n\nContinue?",
       confirmText: "Reset Today",
       cancelText: "Cancel",
       type: "warning",
       onConfirm: async () => {
         setConfirmState({ ...confirmState, isOpen: false });
-        console.log("🔄 [Frontend] Resetting today's work");
-        setLoadingState({ isLoading: true, message: "Resetting today...", submessage: "Clearing today's submission and evaluation" });
+        console.log("🔄 [Frontend] Resetting today's work with force regenerate");
+        setLoadingState({ isLoading: true, message: "Resetting today...", submessage: "Clearing today's submission and regenerating content" });
         try {
-          console.log(`📡 [Frontend] Sending reset today request...`);
-          await resetToday();
+          console.log(`📡 [Frontend] Sending reset today request with force regenerate...`);
+          await resetToday(true); // Force regenerate
           console.log(`✓ [Frontend] Reset today successful, reloading...`);
-          showToast("success", "Today's work reset successfully");
+          showToast("success", "Today's work reset and content regenerated");
           await load();
         } catch (e: unknown) {
           const errorMsg = e instanceof Error ? e.message : "Reset today failed";

@@ -134,12 +134,16 @@ export async function resetUser() {
   return data as { ok: true };
 }
 
-export async function resetToday() {
-  console.log("📡 [API] resetToday called");
+export async function resetToday(forceRegenerate = false) {
+  console.log(`📡 [API] resetToday called${forceRegenerate ? ' (force regenerate)' : ''}`);
   const url = `${API_BASE_URL}/api/reset/today`;
   console.log(`📡 [API] Posting to: ${url}`);
   
-  const res = await fetch(url, { method: "POST", headers: authHeaders() });
+  const res = await fetch(url, { 
+    method: "POST", 
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ forceRegenerate }),
+  });
   console.log(`📡 [API] Response status: ${res.status} ${res.statusText}`);
   
   if (!res.ok) {

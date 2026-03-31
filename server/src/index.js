@@ -611,7 +611,8 @@ async function main() {
   // POST /api/reset/today - Reset only today's work
   app.post("/api/reset/today", authRequired, async (req, res) => {
     const userId = req.userId;
-    console.log(`  🔄 Reset today only: ${userId}`);
+    const forceRegenerate = req.body?.forceRegenerate === true;
+    console.log(`  🔄 Reset today only: ${userId}${forceRegenerate ? ' (force regenerate)' : ''}`);
     
     try {
       const state = await stateStore.getOrCreate(userId);
@@ -622,6 +623,13 @@ async function main() {
       state.lastEvaluation = null;
       state.submissionDraft = state.submissionDraft || {};
       delete state.submissionDraft[currentDay];
+      
+      // Force regenerate day content if requested
+      if (forceRegenerate) {
+        console.log(`  🔄 Force regenerating day ${currentDay} content...`);
+        state.dayContent = null;
+        state.dayContentGeneratedDate = null;
+      }
       
       // Reset day progress
       state.dayProgress = {
