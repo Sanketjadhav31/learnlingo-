@@ -3,6 +3,7 @@ const { callGeminiJsonWithFallback } = require("./geminiClient");
 const { SYSTEM_TRAINER_PROMPT } = require("./prompts");
 const { buildCompressedContext, migrateFromLegacyState } = require("./contextBuilder");
 const { validateCompressedContext } = require("./contextValidator");
+const logger = require("../logger");
 
 /**
  * Extract strong areas from evaluation data
@@ -337,8 +338,10 @@ function normalizeEvaluationShape(input) {
         row?.fail ??
         row?.verdict
     ),
+    original: row?.original ? String(row.original) : undefined,
     correctVersion: row?.correctVersion ? String(row.correctVersion) : undefined,
     errorReason: row?.errorReason ? String(row.errorReason) : undefined,
+    feedback: row?.feedback ? String(row.feedback) : undefined,
   }));
   const vocabSource =
     src.vocabQuiz ?? src.vocabQuizEvaluation ?? src.vocabularyQuiz ?? src.vocabularyQuizEvaluation ?? {};
@@ -434,10 +437,8 @@ function normalizeEvaluationShape(input) {
 
   if (overallPercent === 0) {
     const candidateKeys = Object.keys(src).slice(0, 20);
-    console.log(`    ⚠ evaluation normalized to 0%. Candidate keys(sample): ${candidateKeys.join(", ")}`);
-    console.log(
-      `    ⚠ extracted counts: sentences ${sentenceEvaluations.length}, questions ${questionAnswers.length}, listening ${listeningAnswers.length}`
-    );
+    
+
   }
 
   if (sentencesPercent === 0 && sentenceEvaluations.length) {
@@ -447,7 +448,7 @@ function normalizeEvaluationShape(input) {
       errorReason: s.errorReason ? String(s.errorReason).slice(0, 60) : "",
     }));
     const uniq = [...new Set(sentenceEvaluations.map((s) => s.correctness))].join(",");
-    console.log(`    ⚠ Debug: Grammar(sentences) percent is 0%. correctness values in sample: [${uniq}] sample=${JSON.stringify(sample)}`);
+    
   }
 
   return {
@@ -602,11 +603,9 @@ function normalizeEvaluationShape(input) {
 }
 
 async function evaluateSubmissionGemini({ dayContent, submissionParsed, state }) {
-  console.log(`    🎯 evaluateSubmissionGemini called - Day ${dayContent.dayNumber}`);
 
   const sentenceCount = dayContent.submissionTemplate.sentenceCount;
   const questionCount = dayContent.submissionTemplate.questionCount;
-  console.log(`    📊 Expected counts - Sentences: ${sentenceCount}, Questions: ${questionCount}`);
 
   const isWeekly = dayContent.dayType === "weekly_review";
   const vocabQuizCount = isWeekly ? dayContent.submissionTemplate.vocabQuizCount || 0 : 0;
@@ -656,7 +655,7 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
       weakAreasMaxCount: 10,
       sentenceEvaluationsLength: sentenceCount,
       questionsAnswersCount: questionCount,
-      listeningAnswersCount: 3,
+      listeningAnswersCount: 6,
       vocabQuizCount: isWeekly ? vocabQuizCount : 0,
       requireTodaySummary: {
         topic: "Today's grammar/vocabulary topic name",
@@ -691,12 +690,12 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
                 requirements: {
                   sentenceEvaluationsLength: sentenceCount,
                   questionsAnswersLength: questionCount,
-                  listeningAnswersLength: 3,
+                  listeningAnswersLength: 6,
                   commonMistakesTop3Length: 3,
                   weakAreasMin: 1,
                 },
                 instruction:
-                  "Your output MUST include sentenceEvaluations array with EXACT length, questions.answers array with EXACT length, and listening.answers array with length 3. If missing, return an explicit error JSON (so we can retry).",
+                  "Your output MUST include sentenceEvaluations array with EXACT length, questions.answers array with EXACT length, and listening.answers array with length 6. If missing, return an explicit error JSON (so we can retry).",
               },
             };
 
@@ -707,12 +706,7 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
       const attemptSubmissionListening =
         Array.isArray(submissionParsed?.listening) ? submissionParsed.listening.length : 0;
       const passThreshold = dayContent.dayType === "weekly_review" ? 75 : 70;
-      console.log(
-        `    📤 eval.request (attempt ${attempt}/${evalAttempts}): expected sentences=${sentenceCount}, questions=${questionCount}, listening=3, pass>=${passThreshold}%`
-      );
-      console.log(
-        `    📤 learnerSubmission counts: sentencePractice=${attemptSubmissionSentences}, questions=${attemptSubmissionQuestions}, listeningItems=${attemptSubmissionListening}`
-      );
+      
 
       const rawJsonText = await callGeminiJsonWithFallback({
         systemPrompt: SYSTEM_TRAINER_PROMPT,
@@ -720,33 +714,29 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
         timeoutMs,
       });
 
-      console.log(`    ✓ Parsing and validating evaluation response...`);
       const parsed = JSON.parse(rawJsonText);
       const topKeys = parsed && typeof parsed === "object" ? Object.keys(parsed).slice(0, 15).join(", ") : "(not-object)";
       const candidate = pickEvaluationPayload(parsed);
       const candKeys = candidate && typeof candidate === "object" ? Object.keys(candidate).slice(0, 15).join(", ") : "(not-object)";
-      console.log(`    🔎 eval JSON keys(top): ${topKeys}`);
-      console.log(`    🔎 eval picked candidate keys(sample): ${candKeys}`);
-      const normalized = normalizeEvaluationShape(candidate);
-      console.log(
-        `    📦 eval normalized: overall=${normalized.overallPercent}% tier=${normalized.tier} sentences=${normalized.sentenceEvaluations?.length ?? 0} q=${normalized.questions?.answers?.length ?? 0} listen=${normalized.listening?.answers?.length ?? 0}`
-      );
       
+      
+      const normalized = normalizeEvaluationShape(candidate);
+
       // Debug: Check hindiTranslation data
       if (normalized.hindiTranslation) {
         const hindiAnswers = normalized.hindiTranslation.answers || [];
         const sampleAnswer = hindiAnswers[0] || {};
-        console.log(`    🔍 DEBUG hindiTranslation: count=${hindiAnswers.length}, sample keys=[${Object.keys(sampleAnswer).join(', ')}]`);
+        
         if (hindiAnswers.length > 0) {
-          console.log(`    🔍 DEBUG sample answer:`, JSON.stringify(sampleAnswer, null, 2));
+          
           // Check first 3 answers in detail
           for (let i = 0; i < Math.min(3, hindiAnswers.length); i++) {
             const ans = hindiAnswers[i];
-            console.log(`    🔍 DEBUG answer[${i}]: k=${ans.k}, correctness=${ans.correctness}, hasOriginal=${!!ans.original}, hasCorrectVersion=${!!ans.correctVersion}, hasErrorReason=${!!ans.errorReason}, hasFeedback=${!!ans.feedback}`);
+
           }
         }
       } else {
-        console.log(`    ⚠ DEBUG: normalized.hindiTranslation is missing!`);
+
       }
 
       // Never fabricate evaluation: if Gemini response is incomplete, require retry.
@@ -764,10 +754,10 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
           `Gemini returned questions.answers length ${got}, expected ${questionCount}. Candidate keys: [${candidateKeys}]. questions keys: [${questionKeys}]. Retry submit.`
         );
       }
-      if (!normalized.listening || !Array.isArray(normalized.listening.answers) || normalized.listening.answers.length !== 3) {
+      if (!normalized.listening || !Array.isArray(normalized.listening.answers) || normalized.listening.answers.length !== 6) {
         const got = normalized.listening?.answers && Array.isArray(normalized.listening.answers) ? normalized.listening.answers.length : 0;
         const candidateKeys = candidate && typeof candidate === "object" ? Object.keys(candidate).slice(0, 15).join(", ") : "(not-object)";
-        throw new Error(`Gemini returned listening.answers length ${got}, expected 3. Candidate keys: [${candidateKeys}]. Retry submit.`);
+        throw new Error(`Gemini returned listening.answers length ${got}, expected 6. Candidate keys: [${candidateKeys}]. Retry submit.`);
       }
       if (!Array.isArray(normalized.commonMistakesTop3) || normalized.commonMistakesTop3.length < 3) {
         // Try to generate from sentence errors if missing
@@ -849,6 +839,39 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
         });
       }
 
+      // Merge original user answers for Hindi translation
+      if (submissionParsed?.hindiTranslation && Array.isArray(submissionParsed.hindiTranslation)) {
+        validated.hindiTranslation.answers = validated.hindiTranslation.answers.map((evalItem) => {
+          const userAnswer = submissionParsed.hindiTranslation.find((s) => s.k === evalItem.k);
+          return {
+            ...evalItem,
+            original: userAnswer?.text || evalItem.original || "",
+          };
+        });
+      }
+
+      // Merge original user answers for Questions
+      if (submissionParsed?.questions && Array.isArray(submissionParsed.questions)) {
+        validated.questions.answers = validated.questions.answers.map((evalItem) => {
+          const userAnswer = submissionParsed.questions.find((s) => s.k === evalItem.k);
+          return {
+            ...evalItem,
+            original: userAnswer?.text || evalItem.original || "",
+          };
+        });
+      }
+
+      // Merge original user answers for Listening
+      if (submissionParsed?.listening && Array.isArray(submissionParsed.listening)) {
+        validated.listening.answers = validated.listening.answers.map((evalItem) => {
+          const userAnswer = submissionParsed.listening.find((s) => s.k === evalItem.k);
+          return {
+            ...evalItem,
+            original: userAnswer?.text || evalItem.original || "",
+          };
+        });
+      }
+
       // Extra strictness.
       if (validated.sentenceEvaluations.length !== sentenceCount) {
         throw new Error(`Gemini returned sentenceEvaluations length ${validated.sentenceEvaluations.length}, expected ${sentenceCount}`);
@@ -856,8 +879,8 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
       if (validated.questions.answers.length !== questionCount) {
         throw new Error(`Gemini returned questions.answers length ${validated.questions.answers.length}, expected ${questionCount}`);
       }
-      if (validated.listening.answers.length !== 3) {
-        throw new Error(`Gemini returned listening.answers length ${validated.listening.answers.length}, expected 3`);
+      if (validated.listening.answers.length !== 6) {
+        throw new Error(`Gemini returned listening.answers length ${validated.listening.answers.length}, expected 6`);
       }
       if (isWeekly) {
         if (!validated.vocabQuiz) throw new Error("Weekly review missing vocabQuiz evaluation");
@@ -867,12 +890,11 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
         }
       }
 
-      console.log(`    ✓ Evaluation validated - Tier: ${validated.tier}, Score: ${validated.overallPercent}%`);
       return validated;
     } catch (e) {
       lastErr = e;
       const msg = e instanceof Error ? e.message : String(e);
-      console.warn(`    ⚠ Gemini eval attempt ${attempt}/${evalAttempts} failed: ${msg}`);
+
     }
   }
 
@@ -881,10 +903,10 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
 }
 
 function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
-  console.log(`    📊 Updating state after evaluation...`);
+
   const passThreshold = dayContent.dayType === "weekly_review" ? 75 : 70;
   const strong = evaluation.overallPercent >= passThreshold;
-  console.log(`    ${strong ? "✓" : "❌"} Performance: ${evaluation.tier} (${evaluation.overallPercent}%)`);
+  logger.info(`Evaluation result: ${evaluation.overallPercent}% (${strong ? 'PASS' : 'FAIL'}, threshold=${passThreshold}%)`);
 
   // Calculate IST timezone variables upfront (used for day advancement and scoreHistory)
   const now = new Date();
@@ -926,7 +948,7 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
       Conversation: "Checked",
       [sentenceKey]: "Checked",
       Questions: "Checked",
-      "Listening (3)": "Checked",
+      "Listening (6)": "Checked",
       Reflection: "Checked",
     },
     finalStatus: strong ? "Completed" : shieldApplied ? "Completed" : "Failed",
@@ -976,8 +998,7 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
         fullEvaluation: evaluation,
       },
     ];
-    console.log(`    ✓ Added to scoreHistory - Day ${dayContent.dayNumber} completed`);
-    
+
     // Store revision scores separately for revision days
     if (dayContent.dayType === "weekly_review") {
       const revisionScore = {
@@ -988,12 +1009,12 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
         date: new Date().toISOString(),
       };
       nextState.revisionScores = [...(state.revisionScores || []), revisionScore];
-      console.log(`    ✓ Added revision score for Week ${curriculumEntry.weekNumber}`);
+
     }
   } else {
     // Keep existing scoreHistory unchanged
     nextState.scoreHistory = state.scoreHistory || [];
-    console.log(`    ℹ scoreHistory unchanged - Day not advanced (pass=${strong}, canAdvance=${willAdvanceDay})`);
+    
   }
 
   // Weak areas: used for next day generation.
@@ -1019,37 +1040,37 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
   try {
     // Check if we need to migrate from legacy state
     if (!state.compressedLearnerContext) {
-      console.log(`    🔄 No compressed context found - checking for migration...`);
+
       if (state.lastEvaluation || state.weakAreas) {
         nextState.compressedLearnerContext = migrateFromLegacyState(nextState);
-        console.log(`    ✓ Migrated legacy state to compressed context`);
+
       } else {
         // First evaluation - build fresh context
         nextState.compressedLearnerContext = buildCompressedContext(nextState, evaluation, dayContent);
-        console.log(`    ✓ Built initial compressed context`);
+
       }
     } else {
       // Update existing compressed context
       nextState.compressedLearnerContext = buildCompressedContext(nextState, evaluation, dayContent);
-      console.log(`    ✓ Updated compressed context`);
+
     }
     
     // Validate the compressed context
     const validation = validateCompressedContext(nextState.compressedLearnerContext);
     if (!validation.valid) {
-      console.warn(`    ⚠ Compressed context validation failed:`, validation.errors);
-      console.warn(`    ⚠ Attempting to rebuild context...`);
+
+
       // Try to rebuild
       nextState.compressedLearnerContext = buildCompressedContext(nextState, evaluation, dayContent);
       const revalidation = validateCompressedContext(nextState.compressedLearnerContext);
       if (!revalidation.valid) {
-        console.error(`    ❌ Context rebuild failed. Errors:`, revalidation.errors);
+
       } else {
-        console.log(`    ✓ Context rebuild successful`);
+
       }
     }
   } catch (error) {
-    console.error(`    ❌ Error building compressed context:`, error);
+
     // Don't block evaluation completion - context will be rebuilt next time
   }
 
@@ -1067,14 +1088,14 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
       nextState.consecutiveFailsOnCurrentDay = 0;
       nextState.catchUpMode = false;
       nextState.lastDayCompletionDate = todayIST;
-      console.log(`    ✓ Advancing to day ${nextState.currentDay} (IST date: ${todayIST})`);
+      
     } else {
-      console.log(`    ⚠ Cannot advance - already completed a day today (IST: ${todayIST})`);
+      
       // Keep the evaluation but don't advance
       nextState.lastEvaluation = evaluation;
     }
   } else {
-    console.log(`    ⚠ Staying on day ${dayContent.dayNumber} - retry required`);
+
   }
 
   return nextState;

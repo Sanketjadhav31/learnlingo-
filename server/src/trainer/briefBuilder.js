@@ -18,7 +18,7 @@ const { getTopicForDay, isRevisionDay, getRevisionScope } = require('./curriculu
 function buildTodaysBrief(compressedContext, dayNumber) {
   try {
     if (!compressedContext) {
-      console.warn(`⚠ No compressed context provided for buildTodaysBrief`);
+
       return getDefaultBrief(dayNumber);
     }
     
@@ -71,17 +71,15 @@ function buildTodaysBrief(compressedContext, dayNumber) {
     const tokens = estimateTokens(brief);
     const maxTokens = isReview ? 400 : 350;
     if (tokens > maxTokens) {
-      console.warn(`⚠ TodaysBrief exceeds token budget: ${tokens} > ${maxTokens}`);
+
       // Truncate instructions if needed
       brief.sentenceDesignInstruction = brief.sentenceDesignInstruction.slice(0, 100);
       brief.vocabularyInstruction = brief.vocabularyInstruction.slice(0, 80);
     }
-    
-    console.log(`    📋 Brief: ${isReview ? 'REVIEW' : 'NORMAL'} - ${curriculumEntry.topic}`);
-    
+
     return brief;
   } catch (error) {
-    console.error(`❌ Error building today's brief:`, error);
+
     return getDefaultBrief(dayNumber);
   }
 }

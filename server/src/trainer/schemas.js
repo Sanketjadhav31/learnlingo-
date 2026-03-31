@@ -4,17 +4,22 @@ const WordSchema = z.object({
   word: z.string().min(1),
   pos: z.string().min(1),
   definition: z.string().min(1),
-  example: z.string().min(1),
-  collocations: z.array(z.string().min(1)).min(2).max(4),
-  synonym: z.string(), // Allow empty - Gemini sometimes doesn't provide
-  antonym: z.string(), // Allow empty - Gemini sometimes doesn't provide
+  hindiMeaning: z.string().optional(),
+  examples: z.array(z.string().min(1)).min(3).max(3).optional(),
+  example: z.string().optional(),
+  collocations: z.array(z.string().min(1)).min(2).max(4).optional(),
+  synonym: z.string().optional(),
+  antonym: z.string().optional(),
 });
 
 const PronunciationWordSchema = z.object({
   word: z.string().min(1),
   ipa: z.string().min(1),
-  stress: z.string(), // Allow empty - not always provided
-  mis: z.string().min(1),
+  stress: z.string().optional(),
+  hindiMeaning: z.string().optional(),
+  examples: z.array(z.string().min(1)).min(3).max(3).optional(),
+  exampleSentence: z.string().optional(),
+  mis: z.string().optional(),
   correct: z.string().min(1),
 });
 
@@ -72,7 +77,7 @@ const DayContentSchema = z.object({
   listening: z.object({
     title: z.string().min(1),
     transcript: z.string().min(1),
-    questions: z.array(ListeningQuestionSchema).length(3),
+    questions: z.array(ListeningQuestionSchema).length(6),
   }),
   speakingTask: z.object({
     prompt: z.string().min(1),

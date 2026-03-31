@@ -5,6 +5,7 @@ const { normalizeDayContent } = require("./dayNormalize");
 const { buildTodaysBrief } = require("./briefBuilder");
 const { validateCompressedContext } = require("./contextValidator");
 const { getTopicForDay, isRevisionDay, getRevisionScope } = require("./curriculum");
+const logger = require("../logger");
 
 function determineDayType(dayNumber) {
   return isRevisionDay(dayNumber) ? "weekly_review" : "normal";
@@ -49,12 +50,14 @@ function buildDayResponseSchema({ dayType, sentenceCount, questionCount, vocabQu
       word: schemaStr(),
       pos: schemaStr(),
       definition: schemaStr(),
+      hindiMeaning: schemaStr(),
+      examples: schemaArr(schemaStr(), 3, 3),
       example: schemaStr(),
       collocations: schemaArr(schemaStr(), 2, 4),
       synonym: schemaStr(),
       antonym: schemaStr(),
     },
-    ["word", "pos", "definition", "example", "collocations", "synonym", "antonym"]
+    ["word", "pos", "definition", "hindiMeaning", "examples"]
   );
 
   const pronWordItem = schemaObj(
@@ -62,10 +65,13 @@ function buildDayResponseSchema({ dayType, sentenceCount, questionCount, vocabQu
       word: schemaStr(),
       ipa: schemaStr(),
       stress: schemaStr(),
+      hindiMeaning: schemaStr(),
+      examples: schemaArr(schemaStr(), 3, 3),
+      exampleSentence: schemaStr(),
       mis: schemaStr(),
       correct: schemaStr(),
     },
-    ["word", "ipa", "stress", "mis", "correct"]
+    ["word", "ipa", "stress", "hindiMeaning", "examples", "correct"]
   );
 
   const warmUpItem = schemaObj(
@@ -129,7 +135,7 @@ function buildDayResponseSchema({ dayType, sentenceCount, questionCount, vocabQu
         {
           title: schemaStr(),
           transcript: schemaStr(),
-          questions: schemaArr(listeningQItem, 3, 3),
+          questions: schemaArr(listeningQItem, 6, 6),
         },
         ["title", "transcript", "questions"]
       ),
@@ -174,8 +180,7 @@ function buildDayResponseSchema({ dayType, sentenceCount, questionCount, vocabQu
 }
 
 async function generateDayContentGemini({ state, dayNumber, userId, previousDaySummary }) {
-  console.log(`    🎯 generateDayContentGemini called - Day ${dayNumber}, User: ${userId}`);
-  
+
   const model = getGeminiModel();
   
   if (!model) {
@@ -193,10 +198,9 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
   const todaysTopic = curriculumEntry.topic;
   const isReview = isRevisionDay(dayNumber);
   const weekTopics = isReview ? getRevisionScope(dayNumber) : null;
-  
-  console.log(`    📊 Day type: ${dayType}, Level: ${level}, Topic: ${todaysTopic}`);
+
   if (isReview) {
-    console.log(`    📚 Review day - covering ${weekTopics.length} topics from this week`);
+
   }
 
   const vocabWeekWords = (() => {
@@ -214,15 +218,14 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
   const sentenceCount = dayType === "weekly_review" ? 30 : 20;
   const questionCount = dayType === "weekly_review" ? 10 : 6; // strict count for validator/UI
   const vocabQuizCount = dayType === "weekly_review" ? vocabWeekWords.length : 0;
-  const listeningCount = 3;
+  const listeningCount = 6; // Changed from 3 to 6
   const reflectionCount = 2;
   const conversationMinTurns = 8;
 
   // Build compressed learner context if available
   let learnerContext = null;
   if (state.compressedLearnerContext) {
-    console.log(`    📊 Using compressed learner context for Day ${dayNumber}`);
-    
+
     // Validate compressed context
     const validation = validateCompressedContext(state.compressedLearnerContext);
     if (validation.valid) {
@@ -237,16 +240,15 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
         vocabularyContext: state.compressedLearnerContext.vocabularyMemory,
         todaysBrief: todaysBrief,
       };
-      
-      console.log(`    ✓ Compressed context validated and brief built`);
+
     } else {
-      console.warn(`    ⚠ Compressed context validation failed:`, validation.errors);
-      console.warn(`    ⚠ Falling back to legacy context`);
+
+
       // Fall back to legacy context
       learnerContext = null;
     }
   } else if (dayNumber > 1) {
-    console.log(`    ℹ No compressed context available - using legacy context`);
+
   }
 
   const userPrompt = {
@@ -333,14 +335,14 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
   let lastRawJsonText = null;
   let lastErrMessage = null;
   
-  console.log(`    🔄 Starting Gemini API calls (max ${retries} attempts)...`);
+  logger.dayGenStart(dayNumber, userId);
   
   for (let attempt = 1; attempt <= retries; attempt++) {
-    console.log(`    📡 Attempt ${attempt}/${retries}...`);
+
     try {
       // eslint-disable-next-line no-console
       const timeoutMs = attempt === 1 ? 120000 : 120000;
-      console.warn(`    ⏱️ Gemini call timeout: ${timeoutMs}ms`);
+
       const userPromptAttempt =
         attempt === 1
           ? userPrompt
@@ -362,21 +364,21 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
 
       if (attempt === 1) {
         // eslint-disable-next-line no-console
-        console.warn("Day JSON sample:", String(rawJsonText).slice(0, 220));
+        
       }
 
       const parsed = JSON.parse(rawJsonText);
 
       // Log the structure to understand what Gemini is returning
-      console.log(`    🔍 Parsed JSON structure:`);
-      console.log(`       Top-level keys: ${Object.keys(parsed).join(", ")}`);
+
+      
       if (parsed.sentencePractice) {
-        console.log(`       sentencePractice keys: ${Object.keys(parsed.sentencePractice).join(", ")}`);
-        console.log(`       sentencePractice.items length: ${parsed.sentencePractice.items?.length || 0}`);
+        
+
       }
       if (parsed.questions) {
-        console.log(`       questions keys: ${Object.keys(parsed.questions).join(", ")}`);
-        console.log(`       questions.items length: ${parsed.questions.items?.length || 0}`);
+        
+
       }
 
       // Normalize Gemini output into the required shape (fills missing nested fields safely).
@@ -389,20 +391,18 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
       });
 
       // Log what we got for debugging
-      console.log(`    📋 Normalized content check:`);
-      console.log(`       Grammar length: ${normalized.grammarExplanationText?.length || 0} chars`);
-      console.log(`       Sentence prompts: ${normalized.sentencePractice.items.length} items`);
-      
+
+
+
       const validSentences = normalized.sentencePractice.items.filter(
         s => s.prompt && s.prompt.length > 10 && !s.prompt.toLowerCase().includes("write sentence")
       );
-      console.log(`       Valid sentences: ${validSentences.length}/${sentenceCount}`);
-      console.log(`       Sample sentences: ${normalized.sentencePractice.items.slice(0, 3).map(s => s.prompt).join(" | ")}`);
+
+      
       
       const validQuestions = normalized.questions.items.filter(
         q => q.prompt && q.prompt.length > 5 && q.prompt !== "—"
       );
-      console.log(`       Valid questions: ${validQuestions.length}/${questionCount}`);
 
       // Validate that critical content is not empty/placeholder
       const hasValidGrammar = normalized.grammarExplanationText && 
@@ -434,7 +434,7 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
       if (validated.submissionTemplate.questionCount !== questionCount) {
         throw new Error("AI returned wrong questionCount");
       }
-      if (validated.listening.questions.length !== 3) {
+      if (validated.listening.questions.length !== 6) {
         throw new Error("AI returned wrong listening questions count");
       }
 
@@ -457,18 +457,23 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
         }
       }
 
-      console.log(`    ✓ Day content validated and generated successfully`);
+      logger.dayGenComplete(dayNumber, {
+        sentences: validated.sentencePractice.items.length,
+        questions: validated.questions.items.length,
+        vocab: validated.vocabAndTracks?.wordOfDay?.length || 0,
+        listening: validated.listening?.items?.length || 0
+      });
+      
       return validated;
     } catch (e) {
       lastErr = e;
       lastErrMessage = e instanceof Error ? e.message : String(e);
-      console.warn(`    ❌ Attempt ${attempt} failed:`, e?.message || e);
 
       // Backoff on transient quota/rate-limit errors, otherwise let the repair loop try.
       if (lastErrMessage && (lastErrMessage.includes("429") || lastErrMessage.toLowerCase().includes("quota"))) {
         if (attempt < retries) {
           const waitTime = Math.min(1500 * attempt, 6000);
-          console.warn(`    ⏳ Quota/rate limit detected, waiting ${waitTime}ms before retry...`);
+
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
       }

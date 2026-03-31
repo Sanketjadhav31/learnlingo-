@@ -36,9 +36,7 @@ function enforceTokenBudget(context) {
   if (estimate <= BUDGET.TOTAL_MAX) {
     return context;
   }
-  
-  console.warn(`⚠ Context exceeds token budget: ${estimate} > ${BUDGET.TOTAL_MAX}. Trimming...`);
-  
+
   // Create a copy to modify
   const trimmed = JSON.parse(JSON.stringify(context));
   
@@ -53,7 +51,7 @@ function enforceTokenBudget(context) {
   // Check if we're under budget now
   let currentEstimate = estimateTokens(trimmed);
   if (currentEstimate <= BUDGET.TOTAL_MAX) {
-    console.log(`✓ Budget enforced after vocabulary trim: ${currentEstimate} tokens`);
+
     return trimmed;
   }
   
@@ -64,7 +62,7 @@ function enforceTokenBudget(context) {
   
   currentEstimate = estimateTokens(trimmed);
   if (currentEstimate <= BUDGET.TOTAL_MAX) {
-    console.log(`✓ Budget enforced after trajectory trim: ${currentEstimate} tokens`);
+
     return trimmed;
   }
   
@@ -76,7 +74,7 @@ function enforceTokenBudget(context) {
   
   currentEstimate = estimateTokens(trimmed);
   if (currentEstimate <= BUDGET.TOTAL_MAX) {
-    console.log(`✓ Budget enforced after diagnostic trim: ${currentEstimate} tokens`);
+
     return trimmed;
   }
   
@@ -86,8 +84,7 @@ function enforceTokenBudget(context) {
   }
   
   currentEstimate = estimateTokens(trimmed);
-  console.log(`✓ Budget enforced after aggressive trim: ${currentEstimate} tokens`);
-  
+
   return trimmed;
 }
 

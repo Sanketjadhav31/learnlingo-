@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const dns = require("dns");
 const { Resolver } = require("dns").promises;
+const logger = require("../logger");
 
 function setupCustomDNS() {
   const useCustomDNS = process.env.USE_CUSTOM_DNS === "true";
@@ -10,12 +11,10 @@ function setupCustomDNS() {
   if (useCustomDNS && dnsServers) {
     const servers = dnsServers.split(",").map((s) => s.trim());
     dns.setServers(servers);
-    console.log(`✓ Custom DNS servers configured: ${servers.join(", ")}`);
   }
 
   if (forceIPv4) {
     dns.setDefaultResultOrder("ipv4first");
-    console.log("✓ IPv4 prioritized for DNS resolution");
   }
 }
 
@@ -30,17 +29,14 @@ async function resolveSRV(hostname) {
 
   try {
     const records = await resolver.resolveSrv(hostname);
-    console.log(`✓ SRV records resolved for ${hostname}:`, records.length, "records");
     return true;
   } catch (err) {
-    console.log(`✗ SRV resolution failed for ${hostname}:`, err.message);
     return false;
   }
 }
 
 async function connectMongo(uri) {
   if (!uri || !String(uri).trim()) {
-    console.log("No MongoDB URI provided; using file-based storage.");
     return { enabled: false, mongoose: null };
   }
 
@@ -51,7 +47,6 @@ async function connectMongo(uri) {
   const srvMatch = uri.match(/mongodb\+srv:\/\/[^@]+@([^/?]+)/);
   if (srvMatch) {
     const hostname = `_mongodb._tcp.${srvMatch[1]}`;
-    console.log(`Testing SRV resolution for: ${hostname}`);
     await resolveSRV(hostname);
   }
 
@@ -65,31 +60,23 @@ async function connectMongo(uri) {
   };
 
   try {
-    console.log("Attempting MongoDB connection...");
     await mongoose.connect(uri, connectionOptions);
-    console.log("✓ MongoDB connected successfully");
+    logger.mongoConnect(true, 'primary');
     return { enabled: true, mongoose };
   } catch (e) {
-    console.warn("\n⚠ MongoDB connection failed; using file-based fallback.");
-    console.warn("Error:", e?.message || e);
-    
     // Try fallback standard URI if available
     const fallbackUri = process.env.MONGODB_URI_STANDARD;
     if (fallbackUri && fallbackUri !== uri) {
-      console.log("\nAttempting fallback connection with standard URI...");
       try {
         await mongoose.connect(fallbackUri, connectionOptions);
-        console.log("✓ MongoDB connected via fallback URI");
+        logger.mongoConnect(true, 'fallback');
         return { enabled: true, mongoose };
       } catch (fallbackErr) {
-        console.warn("✗ Fallback connection also failed:", fallbackErr?.message);
+        // Fallback failed
       }
     }
     
-    console.warn("\nUsing file-based storage. To fix MongoDB connection:");
-    console.warn("1. Whitelist your IP in MongoDB Atlas Network Access");
-    console.warn("2. Verify cluster is running (not paused)");
-    console.warn("3. Check credentials are correct\n");
+    logger.mongoConnect(false);
     return { enabled: false, mongoose: null };
   }
 }

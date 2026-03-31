@@ -34,7 +34,16 @@ export type DayContent = {
   sentenceFormationText: string;
   pronunciation: {
     title: string;
-    words: { word: string; ipa: string; stress: string; mis: string; correct: string }[];
+    words: { 
+      word: string; 
+      ipa: string; 
+      stress: string; 
+      hindiMeaning?: string; 
+      examples?: string[];
+      exampleSentence?: string; // Keep for backward compatibility
+      mis?: string; // Keep for backward compatibility
+      correct: string;
+    }[];
     tongueTwister: string;
   };
   vocabAndTracks: {
@@ -42,10 +51,12 @@ export type DayContent = {
       word: string;
       pos: string;
       definition: string;
-      example: string;
-      collocations: string[];
-      synonym: string;
-      antonym: string;
+      hindiMeaning?: string;
+      examples?: string[];
+      example?: string; // Keep for backward compatibility
+      collocations?: string[]; // Keep for backward compatibility
+      synonym?: string; // Keep for backward compatibility
+      antonym?: string; // Keep for backward compatibility
     }[];
     idiom: string;
     phrasal: string;
@@ -147,7 +158,17 @@ export type Evaluation = {
       feedback?: string;
     }[] 
   };
-  listening: { scorePercent: number; answers: { k: number; correctness: "Correct" | "Incorrect"; correctVersion?: string; errorReason?: string }[] };
+  listening: { 
+    scorePercent: number; 
+    answers: { 
+      k: number; 
+      correctness: "Correct" | "Incorrect" | "Partially Correct"; 
+      original?: string;
+      correctVersion?: string; 
+      errorReason?: string;
+      feedback?: string;
+    }[] 
+  };
   commonMistakesTop3: { mistake: string; example: string; correction: string }[];
   weakAreas: string[];
   todaySummary?: {

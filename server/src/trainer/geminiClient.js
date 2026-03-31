@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const logger = require("../logger");
 
 // API Key rotation system - detects all GOOGLE_API_KEY* environment variables
 let apiKeyPool = [];
@@ -19,7 +20,7 @@ function initializeApiKeyPool() {
   apiKeyPool = keys;
   
   if (apiKeyPool.length > 0) {
-    console.log(`🔑 Loaded ${apiKeyPool.length} API key(s) for rotation`);
+    
   }
   
   return apiKeyPool;
@@ -43,7 +44,7 @@ function getRandomApiKey() {
     ? `...${selectedKey.slice(-6)}` 
     : selectedKey;
   
-  console.log(`🔑 Using API key: ${maskedKey} (${randomIndex + 1}/${apiKeyPool.length})`);
+  
   
   return selectedKey;
 }
@@ -114,7 +115,8 @@ async function callGeminiJson({
   responseSchema,
   useResponseMimeType = true,
 }) {
-  console.log(`      🌐 Calling Gemini API (timeout: ${timeoutMs}ms)...`);
+  const modelName = model._modelParams?.model || 'unknown';
+  logger.geminiCall(modelName, 'JSON generation');
   
   const fullPrompt = [
     systemPrompt.trim(),
@@ -139,7 +141,7 @@ async function callGeminiJson({
     );
 
     const raw = res.response.text();
-    console.log(`      ✓ Gemini API response received (${raw.length} chars)`);
+    logger.geminiResponse(raw.length, true);
 
     const jsonText = extractLikelyJson(raw);
     JSON.parse(jsonText);
@@ -147,8 +149,8 @@ async function callGeminiJson({
   } catch (error) {
     // Re-throw with more context
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`      ❌ Gemini API error:`, errorMessage);
-    
+    logger.geminiError(errorMessage);
+
     // Check if it's a quota/rate limit error
     if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("Too Many Requests")) {
       throw new Error(`Gemini API quota exceeded: ${errorMessage}`);
@@ -160,13 +162,13 @@ async function callGeminiJson({
 function getGeminiModel(modelNameOverride, apiVersionOverride) {
   const apiKey = getRandomApiKey();
   if (!apiKey || !String(apiKey).trim()) {
-    console.warn("      ⚠ No Gemini API key found");
+
     return null;
   }
   const modelName = normalizeGeminiModelName(modelNameOverride || process.env.GEMINI_MODEL || "");
   const finalName = modelName || "gemini-2.5-flash";
   const apiVersion = String(apiVersionOverride || getApiVersion()).trim() || "v1beta";
-  console.log(`      🤖 Gemini model initialized: ${finalName} (apiVersion: ${apiVersion})`);
+  
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({ model: finalName }, { apiVersion });
 }
@@ -223,7 +225,7 @@ async function callGeminiJsonWithFallback({
       if (!model) throw new Error("Gemini API key missing. Set GOOGLE_API_KEY in server/.env");
 
       try {
-        console.log(`      🤖 Using Gemini model: ${name} (apiVersion: ${apiVersion})`);
+        
         const useResponseMimeType = apiVersion !== "v1";
         return await callGeminiJson({ model, systemPrompt, userPrompt, timeoutMs, responseSchema, useResponseMimeType });
       } catch (e) {
@@ -232,7 +234,7 @@ async function callGeminiJsonWithFallback({
         // Try next model on quota/rate-limit; quotas are often model-specific.
         if (msg.includes("429") || msg.toLowerCase().includes("quota") || msg.includes("Too Many Requests")) {
           sawQuotaError = true;
-          console.warn(`      ⚠ Model '${name}' quota/rate-limited. Trying next model...`);
+
           continue;
         }
         if (
@@ -241,11 +243,11 @@ async function callGeminiJsonWithFallback({
           msg.toLowerCase().includes("high demand") ||
           msg.toLowerCase().includes("temporarily unavailable")
         ) {
-          console.warn(`      ⚠ Model '${name}' service unavailable/high demand. Trying next model...`);
+
           continue;
         }
         if (isModelNotFoundOrUnsupported(msg)) {
-          console.warn(`      ⚠ Model '${name}' unavailable for generateContent. Trying next...`);
+
           continue;
         }
         throw e;
@@ -258,7 +260,7 @@ async function callGeminiJsonWithFallback({
     const discovered = await listModelsThatSupportGenerateContent();
     const pick = preferModelOrder(discovered);
     if (pick && !candidates.includes(pick)) {
-      console.warn(`      🔎 Auto-selected model from ListModels: ${pick}`);
+
       const model = getGeminiModel(pick, envApiVersion);
       if (!model) throw new Error("Gemini API key missing. Set GOOGLE_API_KEY in server/.env");
       const useResponseMimeType = envApiVersion !== "v1";

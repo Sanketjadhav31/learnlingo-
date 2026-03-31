@@ -174,15 +174,13 @@ function ensureStringArray(arr) {
  * Evaluate test using Gemini API with retry logic
  */
 async function evaluateTestGemini({ test, userAnswers, state }) {
-  console.log(`🎯 evaluateTestGemini called - Test: ${test.testId}`);
-  
+
   const maxAttempts = 2;
   let lastError = null;
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`🔄 Test evaluation attempt ${attempt}/${maxAttempts}`);
-      
+
       // Build evaluation prompt
       const prompt = buildEvaluationPrompt({ test, userAnswers });
       
@@ -193,13 +191,13 @@ async function evaluateTestGemini({ test, userAnswers, state }) {
         timeoutMs: 120000
       });
       
-      console.log('📄 Raw JSON response (first 1000 chars):', rawJson.substring(0, 1000));
+      
       
       const parsed = JSON.parse(rawJson);
       
       // Debug: Log the actual response structure
-      console.log('📋 Gemini response keys:', Object.keys(parsed));
-      console.log('📋 Full response structure:', JSON.stringify(parsed, null, 2).substring(0, 500));
+      
+      
       
       // Normalize response
       const normalized = normalizeTestEvaluation(parsed);
@@ -208,21 +206,18 @@ async function evaluateTestGemini({ test, userAnswers, state }) {
       if (normalized.questionResults.length !== 20) {
         throw new Error(`Expected 20 question results, got ${normalized.questionResults.length}`);
       }
-      
-      console.log(`✓ Test evaluated successfully - Score: ${normalized.overallScore}%, Passed: ${normalized.passed}`);
-      
+
       return normalized;
       
     } catch (error) {
       lastError = error;
       const msg = error instanceof Error ? error.message : String(error);
-      console.warn(`⚠ Attempt ${attempt} failed: ${msg}`);
-      
+
       // Check for quota/rate limit errors
       if (msg.includes("429") || msg.toLowerCase().includes("quota")) {
         if (attempt < maxAttempts) {
           const waitTime = 1500 * attempt;
-          console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }

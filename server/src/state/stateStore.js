@@ -19,7 +19,7 @@ function createEmptyTracker(day = 1) {
       Conversation: "Pending",
       "Sentences (20)": "Pending",
       Questions: "Pending",
-      "Listening (3)": "Pending",
+      "Listening (6)": "Pending",
       Reflection: "Pending",
     },
     finalStatus: "Not Started",
@@ -76,32 +76,25 @@ function fileStoreFactory() {
 
   return {
     async getOrCreate(userId) {
-      console.log(`      📁 FileStore: Loading state for user ${userId}`);
       const fp = filePathFor(userId);
       if (fs.existsSync(fp)) {
         const raw = fs.readFileSync(fp, "utf-8");
         if (raw.trim()) {
           const state = JSON.parse(raw);
-          console.log(`      ✓ FileStore: State loaded - Day ${state.currentDay}`);
           return state;
         }
       }
-      console.log(`      📝 FileStore: Creating new state for user ${userId}`);
       const st = createEmptyState();
       fs.writeFileSync(fp, JSON.stringify(st, null, 2), "utf-8");
       return st;
     },
     async save(userId, state) {
-      console.log(`      💾 FileStore: Saving state for user ${userId} - Day ${state.currentDay}`);
       const fp = filePathFor(userId);
       fs.writeFileSync(fp, JSON.stringify(state, null, 2), "utf-8");
-      console.log(`      ✓ FileStore: State saved successfully`);
     },
     async reset(userId) {
-      console.log(`      🗑️ FileStore: Resetting state for user ${userId}`);
       const fp = filePathFor(userId);
       if (fs.existsSync(fp)) fs.unlinkSync(fp);
-      console.log(`      ✓ FileStore: State reset complete`);
     },
   };
 }
@@ -110,38 +103,28 @@ function mongoStoreFactory() {
   const UserState = getUserStateModel();
   return {
     async getOrCreate(userId) {
-      console.log(`      💾 MongoDB: Loading state for user ${userId}`);
       let doc = await UserState.findOne({ userId }).lean();
       if (!doc) {
-        console.log(`      📝 MongoDB: Creating new state for user ${userId}`);
         const st = createEmptyState();
         await UserState.create({ userId, ...st });
         doc = await UserState.findOne({ userId }).lean();
-      } else {
-        console.log(`      ✓ MongoDB: State loaded - Day ${doc.currentDay}`);
       }
       const { _id, __v, createdAt, updatedAt, ...state } = doc;
       return state;
     },
     async save(userId, state) {
-      console.log(`      💾 MongoDB: Saving state for user ${userId} - Day ${state.currentDay}`);
       await UserState.updateOne({ userId }, { $set: { ...state, userId } }, { upsert: true });
-      console.log(`      ✓ MongoDB: State saved successfully`);
     },
     async reset(userId) {
-      console.log(`      🗑️ MongoDB: Resetting state for user ${userId}`);
       await UserState.deleteOne({ userId });
-      console.log(`      ✓ MongoDB: State reset complete`);
     },
   };
 }
 
 function stateStoreFactory({ mongoConn }) {
   if (mongoConn && mongoConn.enabled) {
-    console.log("📦 Using MongoDB state store");
     return mongoStoreFactory();
   }
-  console.log("📦 Using File-based state store");
   return fileStoreFactory();
 }
 

@@ -107,26 +107,24 @@ function extractPronunciationWords(pronRaw) {
     pronRaw.rules, // Gemini sometimes returns rules array
   ];
 
-  console.log('🔍 extractPronunciationWords - checking candidates...');
-  
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i];
-    console.log(`🔍 Candidate ${i}: type=${Array.isArray(c) ? 'array' : typeof c}, length=${Array.isArray(c) ? c.length : 'N/A'}`);
+    
     
     if (Array.isArray(c) && c.length > 0) {
-      console.log(`🔍 Candidate ${i} first item:`, JSON.stringify(c[0], null, 2));
+      
       
       // If it's a rules array, extract words from exampleWords
       if (c[0] && c[0].exampleWords && Array.isArray(c[0].exampleWords)) {
-        console.log('🔍 Found rules array with exampleWords, processing...');
+
         const extracted = [];
         for (const rule of c) {
           if (rule.exampleWords && Array.isArray(rule.exampleWords)) {
-            console.log(`🔍 Processing rule with ${rule.exampleWords.length} example words:`, rule.exampleWords);
+
             for (const wordStr of rule.exampleWords) {
               // Parse "walks /wɔːks/ (sounds like 's')" format
               const match = String(wordStr).match(/^(\w+)\s+\/([\w\s:ːɔɪʊəæɛʌɑɒʃʒθðŋ]+)\//);
-              console.log(`🔍 Parsing "${wordStr}" -> match:`, match ? `${match[1]} /${match[2]}/` : 'NO MATCH');
+
               if (match) {
                 extracted.push({
                   word: match[1],
@@ -137,18 +135,18 @@ function extractPronunciationWords(pronRaw) {
             }
           }
         }
-        console.log(`🔍 Extracted ${extracted.length} pronunciation words from rules array`);
+
         if (extracted.length > 0) return extracted;
       }
       
       // Otherwise return the array as-is
-      console.log(`🔍 Returning candidate ${i} as-is (${c.length} items)`);
+      
       return c;
     }
     if (c && typeof c === "object" && !Array.isArray(c)) {
       const arr = ensureArray(c);
       if (arr.length > 0) {
-        console.log(`🔍 Converted candidate ${i} to array (${arr.length} items)`);
+        
         return arr;
       }
     }
@@ -156,17 +154,16 @@ function extractPronunciationWords(pronRaw) {
 
   const asArr = ensureArray(pronRaw);
   if (asArr.length > 0) {
-    console.log(`🔍 Converted pronRaw itself to array (${asArr.length} items)`);
+    
     return asArr;
   }
 
   // pronRaw itself is a single word entry
   if (pronRaw.word || pronRaw.ipa || pronRaw.phonetic) {
-    console.log('🔍 pronRaw is a single word entry');
+
     return [pronRaw];
   }
 
-  console.log('🔍 No valid pronunciation data found');
   return [];
 }
 
@@ -189,20 +186,19 @@ function extractWordOfDay(vocabRaw) {
     vocabRaw.vocabList,
   ];
 
-  console.log('🔍 extractWordOfDay - checking candidates...');
-  console.log('🔍 vocabRaw keys:', Object.keys(vocabRaw).join(', '));
+  
 
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i];
     if (Array.isArray(c) && c.length > 0) {
-      console.log(`✅ Found vocabulary in candidate ${i}, length: ${c.length}`);
-      console.log(`🔍 First item:`, JSON.stringify(c[0], null, 2));
+
+      
       return c;
     }
     if (c && typeof c === "object" && !Array.isArray(c)) {
       const arr = ensureArray(c);
       if (arr.length > 0) {
-        console.log(`✅ Converted candidate ${i} to array, length: ${arr.length}`);
+
         return arr;
       }
     }
@@ -210,23 +206,22 @@ function extractWordOfDay(vocabRaw) {
 
   const asArr = ensureArray(vocabRaw);
   if (asArr.length > 0) {
-    console.log(`✅ Using vocabRaw as array, length: ${asArr.length}`);
+
     return asArr;
   }
 
-  console.log('⚠️ No vocabulary found in any candidate');
   return [];
 }
 
 function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionCount, vocabQuizCount }) {
-  console.log(`    🔍 Normalizing day content - checking raw structure...`);
-  console.log(`       Has sentencePractice: ${!!raw?.sentencePractice}`);
-  console.log(`       Has questions: ${!!raw?.questions}`);
-  console.log(`       Has warmUpCorrections: ${!!raw?.warmUpCorrections}, count: ${ensureArray(raw?.warmUpCorrections).length}`);
-  console.log(`       Has pronunciation: ${!!raw?.pronunciation}, keys: ${Object.keys(raw?.pronunciation || {}).join(", ")}`);
-  console.log(`       Has vocabAndTracks: ${!!raw?.vocabAndTracks}, keys: ${Object.keys(raw?.vocabAndTracks || raw?.vocab || {}).join(", ")}`);
-  console.log(`       sentencePractice type: ${typeof raw?.sentencePractice}, keys: ${Object.keys(raw?.sentencePractice || {}).join(", ")}`);
-  console.log(`       questions type: ${typeof raw?.questions}, keys: ${Object.keys(raw?.questions || {}).join(", ")}`);
+
+
+
+  
+  
+  
+  
+  
 
   const pronRaw = raw?.pronunciation || {};
   const vocabRaw = raw?.vocabAndTracks || raw?.vocab || {};
@@ -239,7 +234,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
 
   // ── wordOfDay ────────────────────────────────────────────────────────────────
   const wordOfDayIn = extractWordOfDay(vocabRaw).filter(Boolean);
-  console.log(`    🔍 wordOfDay count: ${wordOfDayIn.length}, sample: ${JSON.stringify(wordOfDayIn[0])}`);
+  
 
   const wordOfDay = Array.from({ length: 10 }, (_, i) => {
     const x = wordOfDayIn[i] || {};
@@ -258,6 +253,13 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
     const word = asString(x.word || x.term || x.vocab || "");
     const definition = asString(x.definition || x.meaning || x.def || x.description || "");
     const example = asString(x.example || x.exampleSentence || x.exampleUse || x.usage || x.sentence || "");
+    const hindiMeaning = asString(x.hindiMeaning || x.hindi || x.hindiTranslation || "");
+    
+    // Extract examples array
+    const examplesIn = ensureArray(x.examples);
+    const examples = examplesIn.length > 0 
+      ? examplesIn.map((e) => asString(e)).filter(Boolean).slice(0, 3)
+      : [];
 
     // Only create entry if we have at least a word
     if (!word || word.length === 0) {
@@ -266,6 +268,8 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
         pos: "noun",
         definition: "Definition not available",
         example: "Example not available",
+        hindiMeaning: "",
+        examples: [],
         collocations: filledColl.slice(0, 4),
         synonym: "",
         antonym: "",
@@ -277,19 +281,21 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       pos: asString(x.pos || x.partOfSpeech || x.type || "noun"),
       definition: definition || "Definition not available",
       example: example || `Example sentence with ${word}.`,
+      hindiMeaning: hindiMeaning,
+      examples: examples,
       collocations: filledColl.slice(0, 4),
       synonym: asString(x.synonym || x.syn || x.similar || ""),
       antonym: asString(x.antonym || x.ant || x.opposite || ""),
     };
   });
-  console.log(`    ✅ wordOfDay normalized: ${wordOfDay.length} items, first 3:`, wordOfDay.slice(0, 3).map(w => `${w.word}:${w.definition}`));
+  
 
   // ── pronunciation ────────────────────────────────────────────────────────────
   const pronWordsIn = extractPronunciationWords(pronRaw);
-  console.log(`    🔍 pronunciation raw data:`, JSON.stringify(pronRaw, null, 2));
-  console.log(`    🔍 pronunciation words extracted: ${pronWordsIn.length} items`);
+  
+
   if (pronWordsIn.length > 0) {
-    console.log(`    🔍 pronunciation sample:`, JSON.stringify(pronWordsIn[0], null, 2));
+    
   }
 
   const pronunciationWords = Array.from({ length: 5 }, (_, i) => {
@@ -328,10 +334,18 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       x.advice ||
       ""
     );
+    const hindiMeaning = asString(x.hindiMeaning || x.hindi || x.hindiTranslation || "");
+    const exampleSentence = asString(x.exampleSentence || x.example || x.sentence || "");
+    
+    // Extract examples array
+    const examplesIn = ensureArray(x.examples);
+    const examples = examplesIn.length > 0 
+      ? examplesIn.map((e) => asString(e)).filter(Boolean).slice(0, 3)
+      : [];
 
     // Don't create fallback entries - return null if no valid data
     if (!word || word.length === 0) {
-      console.log(`    ⚠️ pronunciation[${i}]: No valid word data, skipping`);
+
       return null;
     }
 
@@ -339,17 +353,19 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       word: word,
       ipa: ipa || "/unknown/",
       stress: asString(x.stress || x.syllableStress || x.stressPattern || "") || "single",
+      hindiMeaning: hindiMeaning,
+      examples: examples,
+      exampleSentence: exampleSentence,
       mis: mis || "No common mispronunciation noted",
       correct: correct || "Pronounce clearly",
     };
-    
-    console.log(`    ✓ pronunciation[${i}]:`, result.word, result.ipa);
+
     return result;
   }).filter(Boolean); // Remove null entries
 
   // ── warmUpCorrections ────────────────────────────────────────────────────────
   const warmUpCorrectionsIn = ensureArray(raw?.warmUpCorrections).filter(Boolean);
-  console.log(`    🔍 warmUpCorrections sample: ${JSON.stringify(warmUpCorrectionsIn[0])}`);
+  
 
   const warmUpCorrections = Array.from({ length: 3 }, (_, i) => {
     const x = warmUpCorrectionsIn[i] || {};
@@ -394,7 +410,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
 
   // ── listeningQuestions ───────────────────────────────────────────────────────
   const listeningQuestionsIn = extractItems(listeningRaw.questions || listeningRaw);
-  const listeningQuestions = Array.from({ length: 3 }, (_, i) => {
+  const listeningQuestions = Array.from({ length: 6 }, (_, i) => {
     const x = listeningQuestionsIn[i] || {};
     const idxCandidate =
       typeof x.idx === "number" && x.idx >= 1
@@ -410,9 +426,9 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
 
   // ── sentencePractice ─────────────────────────────────────────────────────────
   const rawSentenceItems = extractItems(sentencePracticeRaw);
-  console.log(`    🔍 Raw sentence items count: ${rawSentenceItems.length}`);
+
   if (rawSentenceItems.length > 0) {
-    console.log(`    🔍 Sample raw sentence: ${JSON.stringify(rawSentenceItems[0])}`);
+    
   }
 
   const sentencePractice = Array.from({ length: sentenceCount }, (_, i) => {
@@ -451,7 +467,6 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
   // ── hindiTranslation ─────────────────────────────────────────────────────────
   const hindiTranslationRaw = raw?.hindiTranslation || {};
   const rawHindiItems = extractItems(hindiTranslationRaw);
-  console.log(`    🔍 Raw Hindi translation items count: ${rawHindiItems.length}`);
 
   const hindiTranslation = Array.from({ length: 20 }, (_, i) => {
     const x = rawHindiItems[i];
@@ -484,7 +499,6 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
 
   // ── questions ────────────────────────────────────────────────────────────────
   const rawQuestionItems = extractItems(questionsRaw);
-  console.log(`    🔍 Raw question items count: ${rawQuestionItems.length}`);
 
   const questions = Array.from({ length: questionCount }, (_, i) => {
     const x = rawQuestionItems[i];
@@ -527,7 +541,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       sentenceCount,
       hindiTranslationCount: 20,
       questionCount,
-      listeningCount: 3,
+      listeningCount: 6,
       reflectionCount: 2,
       conversationMinTurns: 8,
       vocabQuizCount,

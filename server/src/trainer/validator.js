@@ -88,20 +88,18 @@ function uniqueRatio(values) {
 }
 
 function parseAndValidateSubmission({ submissionText, dayContent }) {
-  console.log(`    🔍 Validating submission structure...`);
+
   const expected = dayContent.submissionTemplate;
   const lines = trimLines(submissionText);
-  console.log(`    📄 Submission has ${lines.length} lines`);
 
   const headerParsed = parseHeader(lines);
   if (!headerParsed.ok) {
-    console.log(`    ❌ Header validation failed: ${headerParsed.reason}`);
+
     return { ok: false, reason: headerParsed.reason, details: [] };
   }
-  console.log(`    ✓ Header valid - Day ${headerParsed.dayNumber}, Type: ${headerParsed.dayType}`);
 
   if (headerParsed.dayNumber !== dayContent.dayNumber) {
-    console.log(`    ❌ Day number mismatch: expected ${dayContent.dayNumber}, got ${headerParsed.dayNumber}`);
+
     return {
       ok: false,
       reason: `You are on Day ${dayContent.dayNumber}, but your submission header says Day ${headerParsed.dayNumber}.`,
@@ -110,15 +108,13 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
   }
 
   if (headerParsed.dayType !== dayContent.dayType) {
-    console.log(`    ❌ Day type mismatch: expected ${dayContent.dayType}, got ${headerParsed.dayType}`);
+
     return {
       ok: false,
       reason: `Submission dayType mismatch. Expected ${dayContent.dayType}, got ${headerParsed.dayType}.`,
       details: [],
     };
   }
-
-  console.log(`    ✓ Day number and type match`);
 
   const labelsNormal = [
     { key: "writing", label: "1. Writing Task:" },
@@ -145,26 +141,24 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
 
   const labels = dayContent.dayType === "weekly_review" ? labelsWeekly : labelsNormal;
   const labelIndices = {};
-  console.log(`    🔍 Checking section labels...`);
+
   for (const item of labels) {
     const idx = findLabelLineIndex(lines, item.label);
     if (idx === -1) {
-      console.log(`    ❌ Missing label: ${item.label}`);
+
       return { ok: false, reason: `Missing/incorrect label: "${item.label}"`, details: [] };
     }
     labelIndices[item.key] = idx;
   }
-  console.log(`    ✓ All section labels found`);
 
   // order validation
-  console.log(`    🔍 Validating section order...`);
+
   for (let i = 0; i < labels.length - 1; i++) {
     if (labelIndices[labels[i].key] > labelIndices[labels[i + 1].key]) {
-      console.log(`    ❌ Section order incorrect`);
+
       return { ok: false, reason: "Section order is incorrect.", details: [] };
     }
   }
-  console.log(`    ✓ Section order correct`);
 
   function blockBetween(aKey, bKey) {
     const text = lines.slice(labelIndices[aKey] + 1, labelIndices[bKey]).join("\n").trim();
@@ -190,7 +184,7 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
   const sentenceStart = labelIndices.sentences + 1;
   const sentenceEnd = labelIndices.hindiTranslation;
   const sentenceCount = expected.sentenceCount;
-  console.log(`    🔍 Validating ${sentenceCount} sentences...`);
+
   const sentenceBlock = parseNumberedListBlock(lines, sentenceStart, sentenceEnd);
   if (sentenceBlock.extraNonEmptyLines.length) {
     return {
@@ -212,12 +206,11 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
   if (uniqueRatio(sentenceValues) < 0.6) {
     return { ok: false, reason: "Too many repeated sentences. Please provide unique answers.", details: [] };
   }
-  console.log(`    ✓ All ${sentenceCount} sentences valid`);
 
   const hindiStart = labelIndices.hindiTranslation + 1;
   const hindiEnd = labelIndices.questions;
   const hindiCount = 20;
-  console.log(`    🔍 Validating ${hindiCount} Hindi translations...`);
+
   const hindiBlock = parseNumberedListBlock(lines, hindiStart, hindiEnd);
   if (hindiBlock.extraNonEmptyLines.length) {
     return {
@@ -235,12 +228,11 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
       return { ok: false, reason: `Hindi translation ${n} must be at least 3 words.`, details: [] };
     }
   }
-  console.log(`    ✓ All ${hindiCount} Hindi translations valid`);
 
   const questionStart = labelIndices.questions + 1;
   const questionEnd = labelIndices.listening;
   const questionCount = expected.questionCount;
-  console.log(`    🔍 Validating ${questionCount} questions...`);
+
   const questionBlock = parseNumberedListBlock(lines, questionStart, questionEnd);
   if (questionBlock.extraNonEmptyLines.length) {
     return {
@@ -258,7 +250,6 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
       return { ok: false, reason: `Questions item ${n} must be at least 3 words.`, details: [] };
     }
   }
-  console.log(`    ✓ All ${questionCount} questions valid`);
 
   const listeningStart = labelIndices.listening + 1;
   const actualListeningEnd =
@@ -361,7 +352,6 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     vocabQuiz,
   };
 
-  console.log(`    ✓ Submission validation complete - All sections valid`);
   return { ok: true, parsed };
 }
 

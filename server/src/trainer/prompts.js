@@ -20,10 +20,54 @@ sentenceFormationText        ≤ 900 chars
 warmUpCorrections            ≤ 3 items
 writingTask/speakingTask/conversationTask .prompt  ≤ 500 chars
 listening.transcript         ≤ 450 words
-vocabulary entries           short definition + 1 example each
 motivationalMessage          ≤ 220 chars
 todaySummary.grammarSummary  ≥ 150 words (hard minimum — see SUMMARY RULES)
 todaySummary.topicNotes      ≥ 150 words (hard minimum — see SUMMARY RULES)
+
+══ VOCABULARY (EXACTLY 10 words) ══
+• Provide 10 useful vocabulary words related to today's topic
+• Each word must include:
+  - word: the English word
+  - pos: part of speech (noun, verb, adjective, adverb, etc.)
+  - definition: clear, concise definition (max 15 words)
+  - hindiMeaning: Hindi translation in Devanagari script
+  - examples: array of exactly 3 natural sentences using the word in different contexts
+• Choose words that are useful, relevant, and at appropriate difficulty level
+• DO NOT include synonym, antonym, or collocations fields
+Format: vocabAndTracks: { wordOfDay: [{ word, pos, definition, hindiMeaning, examples: ["...", "...", "..."] }], idiom: "...", phrasal: "..." }
+
+══ SENTENCE PRACTICE (EXACTLY 20 prompts) ══
+CRITICAL: Each prompt MUST be an INSTRUCTION, NOT a complete sentence or question!
+
+CORRECT FORMAT - Use these patterns:
+  ✅ "Write a sentence about [topic] using [today's grammar]"
+  ✅ "Describe [something] applying [today's grammar rule]"
+  ✅ "Explain [concept] using today's grammar focus"
+  ✅ "Create a sentence demonstrating [specific grammar point]"
+  ✅ "Form a sentence about [topic] with [today's structure]"
+
+WRONG FORMAT - NEVER generate these:
+  ❌ "The sun rises in the east." (This is a complete sentence, not an instruction!)
+  ❌ "She works as a teacher." (This is an example, not a prompt!)
+  ❌ "Do you like books?" (This is a question to answer, not a writing instruction!)
+  ❌ "What do you do?" (This asks for an answer, not sentence creation!)
+
+REQUIREMENTS:
+• Start with action verbs: Write, Describe, Explain, Create, Form, Express, Tell, Compose
+• Include TODAY'S grammar focus in the instruction (use the actual topic you're teaching)
+• Make it clear the learner must CREATE a new sentence
+• Each prompt should be 8-15 words long
+• Vary the topics (daily life, hobbies, family, work, travel, etc.) but keep grammar focus consistent
+• Adapt examples to match the actual grammar topic being taught
+
+DYNAMIC EXAMPLES (adapt these to your actual topic):
+  - If teaching Past Tense: "Write a sentence about what you did yesterday using past tense."
+  - If teaching Conditionals: "Create a conditional sentence about your future plans."
+  - If teaching Passive Voice: "Describe a process using passive voice construction."
+  - If teaching Modal Verbs: "Form a sentence with 'should' giving advice to a friend."
+  - If teaching Comparatives: "Write a sentence comparing two cities using comparative adjectives."
+
+Format: sentencePractice: { items: [{ k: 1, prompt: "Write a sentence about..." }, ...] }
 
 ══ HINDI TRANSLATION (EXACTLY 20 sentences) ══
 • Proper Devanagari script only (no romanised Hindi).
@@ -38,13 +82,34 @@ todaySummary.topicNotes      ≥ 150 words (hard minimum — see SUMMARY RULES)
 Format: hindiTranslation: { items: [{ k: 1, hindiSentence: "..." }, ...] }
 
 ══ PRONUNCIATION (EXACTLY 5 words) ══
-• Every word must have: word, ipa, stress, mis, correct.
+• Every word must have: word, ipa, stress, hindiMeaning, examples (array of 3 sentences), correct.
 • Choose HARD words only: /θ/, /ð/, /ʒ/, /ʃ/, /ŋ/, clusters, silent letters, 3+ syllables.
   Good examples: thorough, comfortable, particularly, entrepreneur, colonel, worcestershire.
   NEVER use: cat, dog, book, pen, or any easy word.
-• mis: specific mispronunciation (e.g. "Learners replace /θ/ with /t/ or /s/"). NEVER "No mispronunciation noted".
+• hindiMeaning: Hindi translation of the word (in Devanagari script).
+• examples: Array of exactly 3 simple sentences using the word in different contexts.
 • correct: actionable guidance (e.g. "Stress FIRST syllable: COMF-tuh-bul. 'or' is barely heard."). NEVER "Pronounce clearly".
-Format: pronunciation: { title: "...", words: [{ word, ipa, stress, mis, correct }], tongueTwister: "..." }
+• DO NOT include 'mis' or 'exampleSentence' fields - use 'examples' array instead.
+Format: pronunciation: { title: "...", words: [{ word, ipa, stress, hindiMeaning, examples: ["...", "...", "..."], correct }], tongueTwister: "..." }
+
+══ LISTENING (EXACTLY 6 questions) ══
+• Provide a transcript (≤ 450 words) - a dialogue, story, or passage appropriate for the learner's level.
+• Ask EXACTLY 6 comprehension questions about the transcript.
+• Questions should test: main idea, details, inference, vocabulary in context.
+• Mix question types: who, what, where, when, why, how.
+Format: listening: { title: "...", transcript: "...", questions: [{ idx: 1, prompt: "..." }, ...] }
+
+══ COMPREHENSION QUESTIONS (EXACTLY 6 questions) ══
+• Ask EXACTLY 6 questions about today's lesson, grammar topic, or related concepts.
+• Questions should test understanding of the grammar rules, usage, and application.
+• Mix question types: definition, explanation, example creation, error identification, usage scenarios.
+• Questions should be clear and specific, requiring thoughtful answers (not just yes/no).
+• Examples:
+  - "What is the main difference between [concept A] and [concept B]?"
+  - "When do we use [grammar structure] in English?"
+  - "Give an example of a sentence using [today's grammar focus]."
+  - "Why is it important to use [grammar rule] correctly?"
+Format: questions: { items: [{ idx: 1, prompt: "..." }, ...] }
 
 ══ CURRICULUM — FOLLOW EXACTLY ══
 Level from dayNumber only: Days 1–30 = Beginner, 31–70 = Intermediate, 71+ = Advanced.
@@ -106,6 +171,23 @@ todaySummary.topicNotes:
 • Target: 200–250 words. Cutting this short is NOT acceptable.
 
 ══ SCORING & PENALTIES ══
+HINDI TRANSLATION EVALUATION:
+  • original: learner's English translation attempt
+  • correctVersion: CORRECT ENGLISH TRANSLATION (NOT the Hindi sentence!)
+  • errorReason: explain what was wrong with the learner's English
+  • feedback: guidance on how to translate better
+  • NEVER put Hindi text in correctVersion - it must be English!
+
+LISTENING COMPREHENSION EVALUATION:
+  • Evaluate ALL 6 listening questions (listeningCount = 6)
+  • original: learner's answer to the listening question
+  • correctVersion: correct answer based on the transcript
+  • errorReason: explain why the answer is wrong
+  • feedback: guidance on how to improve listening comprehension
+  • MUST return exactly 6 answers in listening.answers array
+  • MUST calculate listeningPercent score: (correct_count / 6) × 100
+  • Include listeningPercent in scoreBreakdown object
+
 PENALTY SYSTEM (apply to all text evaluations):
   Missing capital at sentence start        −10% (max −20%)
   Lowercase "I" as pronoun                 −5%  (max −15%)
@@ -215,12 +297,12 @@ Tone: Weak tier → extra warmth, 1 fix focus. Medium → balanced, 2 growth are
 
   "listening": {
     "scorePercent": <n>,
-    "answers": [{ "k":<n>, "correctness":"", "correctVersion":"", "errorReason":"", "feedback":"" }]
+    "answers": [{ "k":<n>, "correctness":"", "original":"<learner's answer>", "correctVersion":"<correct answer>", "errorReason":"", "feedback":"" }]
   },
 
   "hindiTranslation": {
     "scorePercent": <n>,
-    "answers": [{ "k":<n>, "correctness":"", "original":"", "correctVersion":"", "errorReason":"", "feedback":"" }]
+    "answers": [{ "k":<n>, "correctness":"", "original":"", "correctVersion":"<ENGLISH translation, NOT Hindi>", "errorReason":"", "feedback":"" }]
   },
 
   "commonMistakesTop3": [{ "mistake":"", "example":"", "correction":"" }],

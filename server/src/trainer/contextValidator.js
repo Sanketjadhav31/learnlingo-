@@ -120,37 +120,50 @@ function validateLearnerIdentity(identity, errors) {
 
 /**
  * Validate curriculum trajectory layer
- * @param {Array} trajectory - Curriculum trajectory
+ * @param {Object} trajectory - Curriculum trajectory object with recentDays and olderSummary
  * @param {Array<string>} errors - Errors array to populate
  */
 function validateCurriculumTrajectory(trajectory, errors) {
-  if (!Array.isArray(trajectory)) {
-    errors.push('curriculumTrajectory is not an array');
+  if (!trajectory || typeof trajectory !== 'object') {
+    errors.push('curriculumTrajectory is not an object');
     return;
   }
   
-  // Validate each entry
-  for (let i = 0; i < trajectory.length; i++) {
-    const entry = trajectory[i];
+  // Check for recentDays array
+  if (!Array.isArray(trajectory.recentDays)) {
+    errors.push('curriculumTrajectory.recentDays is not an array');
+    return;
+  }
+  
+  // Validate each recent day entry
+  for (let i = 0; i < trajectory.recentDays.length; i++) {
+    const entry = trajectory.recentDays[i];
     if (!entry || typeof entry !== 'object') {
-      errors.push(`curriculumTrajectory[${i}] is not an object`);
+      errors.push(`curriculumTrajectory.recentDays[${i}] is not an object`);
       continue;
     }
     
     // Check required fields
     if (!('day' in entry)) {
-      errors.push(`curriculumTrajectory[${i}] missing required field: day`);
+      errors.push(`curriculumTrajectory.recentDays[${i}] missing required field: day`);
     }
     if (!('topic' in entry)) {
-      errors.push(`curriculumTrajectory[${i}] missing required field: topic`);
+      errors.push(`curriculumTrajectory.recentDays[${i}] missing required field: topic`);
     }
     if (!('confidence' in entry)) {
-      errors.push(`curriculumTrajectory[${i}] missing required field: confidence`);
+      errors.push(`curriculumTrajectory.recentDays[${i}] missing required field: confidence`);
     }
     
     // Validate confidence signal
     if (entry.confidence && !VALID_CONFIDENCE_SIGNALS.includes(entry.confidence)) {
-      errors.push(`curriculumTrajectory[${i}].confidence has invalid value: ${entry.confidence}`);
+      errors.push(`curriculumTrajectory.recentDays[${i}].confidence has invalid value: ${entry.confidence}`);
+    }
+  }
+  
+  // olderSummary is optional, but if present should be an object
+  if (trajectory.olderSummary !== null && trajectory.olderSummary !== undefined) {
+    if (typeof trajectory.olderSummary !== 'object') {
+      errors.push('curriculumTrajectory.olderSummary is not an object');
     }
   }
 }

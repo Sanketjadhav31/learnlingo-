@@ -255,15 +255,13 @@ function ensureArray(arr, expectedLength) {
  * Generate test using Gemini API with retry logic
  */
 async function generateTestGemini({ state, forDay, userId, version = 1 }) {
-  console.log(`🎯 generateTestGemini called - Day ${forDay}, User: ${userId}, Version: ${version}`);
-  
+
   const maxAttempts = 2;
   let lastError = null;
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`🔄 Test generation attempt ${attempt}/${maxAttempts}`);
-      
+
       // Build question distribution
       const distribution = buildQuestionDistribution(state, forDay);
       
@@ -290,9 +288,7 @@ async function generateTestGemini({ state, forDay, userId, version = 1 }) {
       if (normalized.length !== 20) {
         throw new Error(`Expected 20 questions, got ${normalized.length}`);
       }
-      
-      console.log(`✓ Test generated successfully with ${normalized.length} questions`);
-      
+
       return {
         questions: normalized,
         version
@@ -301,13 +297,12 @@ async function generateTestGemini({ state, forDay, userId, version = 1 }) {
     } catch (error) {
       lastError = error;
       const msg = error instanceof Error ? error.message : String(error);
-      console.warn(`⚠ Attempt ${attempt} failed: ${msg}`);
-      
+
       // Check for quota/rate limit errors
       if (msg.includes("429") || msg.toLowerCase().includes("quota")) {
         if (attempt < maxAttempts) {
           const waitTime = 1500 * attempt;
-          console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }

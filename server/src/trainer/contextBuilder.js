@@ -73,7 +73,7 @@ function buildLearnerIdentity(state) {
   // Enforce token budget (max 80 tokens)
   const tokens = estimateTokens(identity);
   if (tokens > 80) {
-    console.warn(`⚠ LearnerIdentity exceeds token budget: ${tokens} > 80`);
+
   }
   
   return identity;
@@ -136,13 +136,11 @@ function buildCurriculumTrajectory(state) {
   // Enforce token budget (max 200 tokens)
   const tokens = estimateTokens(trajectory);
   if (tokens > 200) {
-    console.warn(`⚠ CurriculumTrajectory exceeds token budget: ${tokens} > 200`);
+
     // Further prune if needed (keep last 4 days instead of 6)
     trajectory.recentDays = recentDays.slice(-4);
   }
-  
-  console.log(`    📊 Trajectory: ${recentDays.length} recent days, ${olderSummary?.daysCompleted || 0} older days compressed`);
-  
+
   return trajectory;
 }
 
@@ -256,7 +254,7 @@ function buildDiagnosticProfile(state, evaluation) {
   // Enforce token budget (max 300 tokens)
   const tokens = estimateTokens(profile);
   if (tokens > 300) {
-    console.warn(`⚠ DiagnosticProfile exceeds token budget: ${tokens} > 300`);
+
     // Prune lowest-frequency weak areas
     profile.persistentWeakAreas = profile.persistentWeakAreas.slice(0, 5);
     profile.recurringMistakePatterns = profile.recurringMistakePatterns.slice(0, 5);
@@ -299,7 +297,7 @@ function buildVocabularyMemory(state, dayContent) {
   // Enforce token budget (max 100 tokens)
   const tokens = estimateTokens(memory);
   if (tokens > 100) {
-    console.warn(`⚠ VocabularyMemory exceeds token budget: ${tokens} > 100`);
+
     memory.recentWords = memory.recentWords.slice(0, 5);
     memory.wordsToAvoid = memory.wordsToAvoid.slice(0, 10);
   }
@@ -316,8 +314,7 @@ function buildVocabularyMemory(state, dayContent) {
  */
 function buildCompressedContext(state, evaluation, dayContent = null) {
   try {
-    console.log(`    🔧 Building compressed learner context for Day ${state.currentDay}...`);
-    
+
     const context = {
       builtOnDay: state.currentDay,
       builtAt: new Date().toISOString(),
@@ -329,15 +326,14 @@ function buildCompressedContext(state, evaluation, dayContent = null) {
     
     // Validate total token budget (max 830 tokens)
     const totalTokens = estimateTokens(context);
-    console.log(`    📊 Compressed context token estimate: ${totalTokens} tokens`);
-    
+
     if (totalTokens > 830) {
-      console.warn(`⚠ Total compressed context exceeds budget: ${totalTokens} > 830`);
+
     }
     
     return context;
   } catch (error) {
-    console.error(`❌ Error building compressed context:`, error);
+
     // Return minimal valid context on error
     return {
       builtOnDay: state.currentDay,
@@ -372,8 +368,7 @@ function buildCompressedContext(state, evaluation, dayContent = null) {
  * @returns {Object} Initialized compressed context
  */
 function migrateFromLegacyState(state) {
-  console.log(`    🔄 Migrating legacy state to compressed context...`);
-  
+
   try {
     // Build initial context from legacy fields
     const lastEvaluation = state.lastEvaluation || {};
@@ -387,11 +382,10 @@ function migrateFromLegacyState(state) {
     };
     
     const context = buildCompressedContext(state, migrationEvaluation);
-    
-    console.log(`    ✓ Migration complete`);
+
     return context;
   } catch (error) {
-    console.error(`❌ Error during migration:`, error);
+
     // Return minimal valid context
     return buildCompressedContext(state, {
       weakAreas: [],

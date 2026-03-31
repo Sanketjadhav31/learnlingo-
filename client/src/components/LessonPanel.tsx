@@ -119,7 +119,7 @@ export function LessonPanel({
         return parts.join("\n\n") || "Pronunciation content not available.";
       })(),
       vocabulary: (day.vocabAndTracks?.wordOfDay || [])
-        .filter((w) => isValidContent(w.word) && (isValidContent(w.definition) || isValidContent(w.example)))
+        .filter((w) => isValidContent(w.word) && (isValidContent(w.definition) || (w.example && isValidContent(w.example))))
         .map((w) => `${w.word}: ${w.definition}${w.example ? `\n   Example: ${w.example}` : ''}`)
         .join("\n\n") || "Vocabulary content not available.",
       listening: [
@@ -204,33 +204,39 @@ export function LessonPanel({
         
         {openSection === "pronunciation" ? (
           <div className="space-y-4">
-            {(() => {
-              console.log('🔍 CLIENT: Pronunciation data:', day.pronunciation);
-              console.log('🔍 CLIENT: Pronunciation words:', day.pronunciation?.words);
-              console.log('🔍 CLIENT: Filtered words:', (day.pronunciation?.words || []).filter((w) => isValidContent(w.word) && isValidContent(w.ipa)));
-              return null;
-            })()}
             {day.pronunciation?.title && (
               <div className="text-sm font-medium text-white/90">{day.pronunciation.title}</div>
             )}
             {(day.pronunciation?.words || [])
               .filter((w) => isValidContent(w.word) && isValidContent(w.ipa))
               .map((w, i) => {
-                console.log(`🔍 CLIENT: Rendering pronunciation word ${i}:`, w);
                 const cleanIpa = w.ipa.replace(/^\/+|\/+$/g, '');
                 return (
-                  <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                  <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
                     <div className="text-base font-semibold text-indigo-300">
                       {w.word} <span className="text-sm text-white/60">/{cleanIpa}/</span>
                     </div>
-                    {w.mis && isValidContent(w.mis) && (
-                      <div className="mt-2 flex gap-2 text-sm text-red-300">
-                        <span>❌</span>
-                        <span>{w.mis}</span>
+                    {w.hindiMeaning && isValidContent(w.hindiMeaning) && (
+                      <div className="text-sm text-amber-300">
+                        <span className="font-medium">Hindi:</span> {w.hindiMeaning}
+                      </div>
+                    )}
+                    {w.examples && Array.isArray(w.examples) && w.examples.length > 0 && (
+                      <div className="space-y-1">
+                        {w.examples.slice(0, 3).map((ex, idx) => (
+                          <div key={idx} className="text-sm text-white/70 italic">
+                            <span className="text-white/50">{idx + 1}.</span> "{ex}"
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {w.exampleSentence && isValidContent(w.exampleSentence) && (!w.examples || w.examples.length === 0) && (
+                      <div className="text-sm text-white/70 italic">
+                        "{w.exampleSentence}"
                       </div>
                     )}
                     {w.correct && isValidContent(w.correct) && (
-                      <div className="mt-1 flex gap-2 text-sm text-emerald-300">
+                      <div className="flex gap-2 text-sm text-emerald-300">
                         <span>✓</span>
                         <span>{w.correct}</span>
                       </div>
@@ -273,7 +279,7 @@ export function LessonPanel({
         ) : openSection === "vocabulary" ? (
           <div className="space-y-3">
             {(day.vocabAndTracks?.wordOfDay || [])
-              .filter((w) => isValidContent(w.word) && (isValidContent(w.definition) || isValidContent(w.example)))
+              .filter((w) => isValidContent(w.word) && (isValidContent(w.definition) || (w.example && isValidContent(w.example))))
               .map((w, i) => (
                 <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3">
                   <div className="text-base font-semibold text-indigo-300">{w.word}</div>
@@ -283,22 +289,28 @@ export function LessonPanel({
                   {w.definition && isValidContent(w.definition) && (
                     <div className="mt-2 text-sm text-white/85">{w.definition}</div>
                   )}
-                  {w.example && isValidContent(w.example) && (
+                  {w.hindiMeaning && isValidContent(w.hindiMeaning) && (
+                    <div className="mt-2 text-sm text-amber-300">
+                      <span className="font-medium">Hindi:</span> {w.hindiMeaning}
+                    </div>
+                  )}
+                  {w.examples && Array.isArray(w.examples) && w.examples.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {w.examples.slice(0, 3).map((ex, idx) => (
+                        <div key={idx} className="text-sm text-emerald-300/80 italic">
+                          <span className="text-white/50">{idx + 1}.</span> {ex}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {w.example && (!w.examples || w.examples.length === 0) && (
                     <div className="mt-2 text-sm text-emerald-300/80 italic">
                       <span className="text-white/50">Example:</span> {w.example}
                     </div>
                   )}
-                  <div className="mt-2 flex gap-3 text-xs">
-                    {w.synonym && isValidContent(w.synonym) && (
-                      <span className="text-blue-300">Synonym: {w.synonym}</span>
-                    )}
-                    {w.antonym && isValidContent(w.antonym) && (
-                      <span className="text-orange-300">Antonym: {w.antonym}</span>
-                    )}
-                  </div>
                 </div>
               ))}
-            {(day.vocabAndTracks?.wordOfDay || []).filter((w) => isValidContent(w.word) && (isValidContent(w.definition) || isValidContent(w.example))).length === 0 && (
+            {(day.vocabAndTracks?.wordOfDay || []).filter((w) => isValidContent(w.word) && (isValidContent(w.definition) || (w.example && isValidContent(w.example)))).length === 0 && (
               <div className="text-sm text-white/60">Vocabulary content not available.</div>
             )}
           </div>

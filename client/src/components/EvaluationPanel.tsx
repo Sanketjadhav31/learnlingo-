@@ -65,6 +65,14 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
       sections.push(["questions", "Questions"]);
     }
     
+    // Show Listening tab if listening exists and has answers
+    if (evaluation?.listening && 
+        evaluation.listening.answers && 
+        Array.isArray(evaluation.listening.answers) && 
+        evaluation.listening.answers.length > 0) {
+      sections.push(["listening", "Listening"]);
+    }
+    
     sections.push(
       ["writing", "Writing Feedback"],
       ["speaking", "Speaking Feedback"],
@@ -496,77 +504,75 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
               )}
             </div>
             
-            {(() => {
-              // Debug logging
-              console.log('🔍 FRONTEND DEBUG: hindiTranslation exists?', !!evaluation.hindiTranslation);
-              console.log('🔍 FRONTEND DEBUG: hindiTranslation.answers exists?', !!evaluation.hindiTranslation?.answers);
-              console.log('🔍 FRONTEND DEBUG: hindiTranslation.answers length:', evaluation.hindiTranslation?.answers?.length);
-              if (evaluation.hindiTranslation?.answers && evaluation.hindiTranslation.answers.length > 0) {
-                console.log('🔍 FRONTEND DEBUG: First 3 answers:', evaluation.hindiTranslation.answers.slice(0, 3));
-              }
-              return null;
-            })()}
-            
             {evaluation.hindiTranslation && evaluation.hindiTranslation.answers && evaluation.hindiTranslation.answers.length > 0 ? (
-              <div className="space-y-2.5">
-                {evaluation.hindiTranslation.answers.map((answer) => {
-                  const hasDetailedFeedback = answer.original || answer.correctVersion || answer.errorReason || answer.feedback;
-                  
-                  return (
-                    <div key={answer.k} className="rounded-lg border border-white/10 bg-white/5 p-3">
-                      <div className="flex items-start gap-3 mb-2">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-200 text-xs font-bold flex items-center justify-center">
-                          {answer.k}
-                        </div>
-                        <div className={cn(
-                          "text-xs font-semibold px-2.5 py-0.5 rounded whitespace-nowrap",
-                          answer.correctness === "Correct" ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30" :
-                          answer.correctness === "Partially Correct" ? "bg-amber-500/20 text-amber-200 border border-amber-400/30" :
-                          "bg-rose-500/20 text-rose-200 border border-rose-400/30"
-                        )}>
-                          {answer.correctness}
-                        </div>
-                      </div>
-                      
-                      {!hasDetailedFeedback && (
-                        <div className="text-xs text-white/50 italic">
-                          Detailed feedback not available for this evaluation. Submit again to get full feedback.
-                        </div>
-                      )}
-                      
-                      {answer.original && (
-                        <div className="rounded-lg bg-red-500/10 border border-red-400/20 p-2 mb-2">
-                          <div className="text-xs font-semibold text-red-200 mb-1">❌ Your Translation:</div>
-                          <div className="text-sm text-red-100 leading-relaxed">{formatText(answer.original)}</div>
-                        </div>
-                      )}
-                      
-                      {answer.correctVersion && answer.correctness !== "Correct" && (
-                        <div className="rounded-lg bg-emerald-500/10 border border-emerald-400/20 p-2 mb-2">
-                          <div className="text-xs font-semibold text-emerald-200 mb-1">✅ Correct Translation:</div>
-                          <div className="text-sm text-emerald-100 leading-relaxed">{formatText(answer.correctVersion)}</div>
-                        </div>
-                      )}
-                      
-                      {answer.errorReason && answer.errorReason !== "N/A" && answer.errorReason !== "—" && answer.errorReason.trim() !== "" && (
-                        <div className="rounded-lg bg-white/5 border border-white/10 p-2 mb-2">
-                          <div className="text-xs font-semibold text-white/90 mb-1">Reason:</div>
-                          <div className="text-sm text-white/75 leading-relaxed">{formatText(answer.errorReason)}</div>
-                        </div>
-                      )}
-                      
-                      {answer.feedback && answer.feedback !== "N/A" && answer.feedback !== "—" && answer.feedback.trim() !== "" && (
-                        <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-2">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span>💡</span>
-                            <div className="text-xs font-semibold text-amber-200">Tip:</div>
+              <div className="max-h-[350px] overflow-auto pr-1">
+                <div className="grid gap-2.5">
+                  {evaluation.hindiTranslation.answers.map((answer) => (
+                    <div key={answer.k}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedK(selectedK === answer.k ? null : answer.k)}
+                        className={cn(
+                          "w-full rounded-lg border px-3 py-2.5 text-left transition-all",
+                          selectedK === answer.k ? "border-indigo-400/60 bg-indigo-400/10 shadow-lg shadow-indigo-500/10" : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-200 text-xs font-bold flex items-center justify-center">
+                            {answer.k}
                           </div>
-                          <div className="text-sm text-amber-100 leading-relaxed">{formatText(answer.feedback)}</div>
+                          <div className="flex-1 text-sm text-white/80 leading-relaxed">
+                            {answer.original ? formatText(answer.original) : <span className="italic text-white/50">Click to view details</span>}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className={cn(
+                              "text-xs font-semibold px-2.5 py-0.5 rounded whitespace-nowrap",
+                              answer.correctness === "Correct" ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30" :
+                              answer.correctness === "Partially Correct" ? "bg-amber-500/20 text-amber-200 border border-amber-400/30" :
+                              "bg-rose-500/20 text-rose-200 border border-rose-400/30"
+                            )}>
+                              {answer.correctness}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                      
+                      {selectedK === answer.k && (
+                        <div className="mt-2 rounded-lg border border-indigo-400/30 bg-gradient-to-br from-indigo-500/20 to-purple-500/15 p-2.5 shadow-lg">
+                          <div className="space-y-2 text-[11px]">
+                            {answer.original && (
+                              <div className="rounded-lg bg-black/20 p-2">
+                                <div className="font-semibold text-white/90 mb-0.5">Original:</div>
+                                <div className="text-white/75 leading-relaxed">{formatText(answer.original)}</div>
+                              </div>
+                            )}
+                            {answer.correctVersion && answer.correctness !== "Correct" && (
+                              <div className="rounded-lg bg-emerald-500/10 border border-emerald-400/20 p-2">
+                                <div className="font-semibold text-emerald-200 mb-0.5">Correct:</div>
+                                <div className="text-emerald-100 leading-relaxed">{formatText(answer.correctVersion)}</div>
+                              </div>
+                            )}
+                            {answer.errorReason && answer.errorReason !== "N/A" && answer.errorReason !== "—" && answer.errorReason.trim() !== "" && (
+                              <div className="rounded-lg bg-white/5 border border-white/10 p-2">
+                                <div className="font-semibold text-white/90 mb-0.5">Reason:</div>
+                                <div className="text-white/75 leading-relaxed">{formatText(answer.errorReason)}</div>
+                              </div>
+                            )}
+                            {answer.feedback && answer.feedback !== "N/A" && answer.feedback !== "—" && answer.feedback.trim() !== "" && (
+                              <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-2">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span>💡</span>
+                                  <div className="font-semibold text-amber-200">Tip:</div>
+                                </div>
+                                <div className="text-amber-100 leading-relaxed">{formatText(answer.feedback)}</div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
@@ -590,77 +596,75 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
               )}
             </div>
             
-            {(() => {
-              // Debug logging
-              console.log('🔍 FRONTEND DEBUG: questions exists?', !!evaluation.questions);
-              console.log('🔍 FRONTEND DEBUG: questions.answers exists?', !!evaluation.questions?.answers);
-              console.log('🔍 FRONTEND DEBUG: questions.answers length:', evaluation.questions?.answers?.length);
-              if (evaluation.questions?.answers && evaluation.questions.answers.length > 0) {
-                console.log('🔍 FRONTEND DEBUG: First 3 question answers:', evaluation.questions.answers.slice(0, 3));
-              }
-              return null;
-            })()}
-            
             {evaluation.questions && evaluation.questions.answers && evaluation.questions.answers.length > 0 ? (
-              <div className="space-y-2.5">
-                {evaluation.questions.answers.map((answer) => {
-                  const hasDetailedFeedback = answer.original || answer.correctVersion || answer.errorReason || answer.feedback;
-                  
-                  return (
-                    <div key={answer.k} className="rounded-lg border border-white/10 bg-white/5 p-3">
-                      <div className="flex items-start gap-3 mb-2">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-200 text-xs font-bold flex items-center justify-center">
-                          {answer.k}
-                        </div>
-                        <div className={cn(
-                          "text-xs font-semibold px-2.5 py-0.5 rounded whitespace-nowrap",
-                          answer.correctness === "Correct" ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30" :
-                          answer.correctness === "Partially Correct" ? "bg-amber-500/20 text-amber-200 border border-amber-400/30" :
-                          "bg-rose-500/20 text-rose-200 border border-rose-400/30"
-                        )}>
-                          {answer.correctness}
-                        </div>
-                      </div>
-                      
-                      {!hasDetailedFeedback && (
-                        <div className="text-xs text-white/50 italic">
-                          Detailed feedback not available for this evaluation. Submit again to get full feedback.
-                        </div>
-                      )}
-                      
-                      {answer.original && (
-                        <div className="rounded-lg bg-red-500/10 border border-red-400/20 p-2 mb-2">
-                          <div className="text-xs font-semibold text-red-200 mb-1">❌ Your Answer:</div>
-                          <div className="text-sm text-red-100 leading-relaxed">{formatText(answer.original)}</div>
-                        </div>
-                      )}
-                      
-                      {answer.correctVersion && answer.correctness !== "Correct" && (
-                        <div className="rounded-lg bg-emerald-500/10 border border-emerald-400/20 p-2 mb-2">
-                          <div className="text-xs font-semibold text-emerald-200 mb-1">✅ Correct Answer:</div>
-                          <div className="text-sm text-emerald-100 leading-relaxed">{formatText(answer.correctVersion)}</div>
-                        </div>
-                      )}
-                      
-                      {answer.errorReason && answer.errorReason !== "N/A" && answer.errorReason !== "—" && answer.errorReason.trim() !== "" && (
-                        <div className="rounded-lg bg-white/5 border border-white/10 p-2 mb-2">
-                          <div className="text-xs font-semibold text-white/90 mb-1">Reason:</div>
-                          <div className="text-sm text-white/75 leading-relaxed">{formatText(answer.errorReason)}</div>
-                        </div>
-                      )}
-                      
-                      {answer.feedback && answer.feedback !== "N/A" && answer.feedback !== "—" && answer.feedback.trim() !== "" && (
-                        <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-2">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span>💡</span>
-                            <div className="text-xs font-semibold text-amber-200">Feedback:</div>
+              <div className="max-h-[350px] overflow-auto pr-1">
+                <div className="grid gap-2.5">
+                  {evaluation.questions.answers.map((answer) => (
+                    <div key={answer.k}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedK(selectedK === answer.k ? null : answer.k)}
+                        className={cn(
+                          "w-full rounded-lg border px-3 py-2.5 text-left transition-all",
+                          selectedK === answer.k ? "border-indigo-400/60 bg-indigo-400/10 shadow-lg shadow-indigo-500/10" : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-200 text-xs font-bold flex items-center justify-center">
+                            {answer.k}
                           </div>
-                          <div className="text-sm text-amber-100 leading-relaxed">{formatText(answer.feedback)}</div>
+                          <div className="flex-1 text-sm text-white/80 leading-relaxed">
+                            {answer.original ? formatText(answer.original) : <span className="italic text-white/50">Click to view details</span>}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className={cn(
+                              "text-xs font-semibold px-2.5 py-0.5 rounded whitespace-nowrap",
+                              answer.correctness === "Correct" ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30" :
+                              answer.correctness === "Partially Correct" ? "bg-amber-500/20 text-amber-200 border border-amber-400/30" :
+                              "bg-rose-500/20 text-rose-200 border border-rose-400/30"
+                            )}>
+                              {answer.correctness}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                      
+                      {selectedK === answer.k && (
+                        <div className="mt-2 rounded-lg border border-indigo-400/30 bg-gradient-to-br from-indigo-500/20 to-purple-500/15 p-2.5 shadow-lg">
+                          <div className="space-y-2 text-[11px]">
+                            {answer.original && (
+                              <div className="rounded-lg bg-black/20 p-2">
+                                <div className="font-semibold text-white/90 mb-0.5">Original:</div>
+                                <div className="text-white/75 leading-relaxed">{formatText(answer.original)}</div>
+                              </div>
+                            )}
+                            {answer.correctVersion && answer.correctness !== "Correct" && (
+                              <div className="rounded-lg bg-emerald-500/10 border border-emerald-400/20 p-2">
+                                <div className="font-semibold text-emerald-200 mb-0.5">Correct:</div>
+                                <div className="text-emerald-100 leading-relaxed">{formatText(answer.correctVersion)}</div>
+                              </div>
+                            )}
+                            {answer.errorReason && answer.errorReason !== "N/A" && answer.errorReason !== "—" && answer.errorReason.trim() !== "" && (
+                              <div className="rounded-lg bg-white/5 border border-white/10 p-2">
+                                <div className="font-semibold text-white/90 mb-0.5">Reason:</div>
+                                <div className="text-white/75 leading-relaxed">{formatText(answer.errorReason)}</div>
+                              </div>
+                            )}
+                            {answer.feedback && answer.feedback !== "N/A" && answer.feedback !== "—" && answer.feedback.trim() !== "" && (
+                              <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-2">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span>💡</span>
+                                  <div className="font-semibold text-amber-200">Tip:</div>
+                                </div>
+                                <div className="text-amber-100 leading-relaxed">{formatText(answer.feedback)}</div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
@@ -668,6 +672,98 @@ export function EvaluationPanel({ evaluation }: { evaluation: Evaluation | null 
                   {evaluation.questions && evaluation.questions.scorePercent !== undefined 
                     ? `Questions were evaluated with a score of ${Math.round(evaluation.questions.scorePercent)}%, but detailed feedback is not available for this evaluation.`
                     : "No question results available."}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeSection === "listening" && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">🎧</span>
+              <div className="text-sm font-semibold text-white/90">Listening Comprehension</div>
+              {evaluation.listening && evaluation.listening.scorePercent !== undefined && (
+                <div className="ml-auto text-sm text-white/70">Score: {Math.round(evaluation.listening.scorePercent)}%</div>
+              )}
+            </div>
+            
+            {evaluation.listening && evaluation.listening.answers && evaluation.listening.answers.length > 0 ? (
+              <div className="max-h-[350px] overflow-auto pr-1">
+                <div className="grid gap-2.5">
+                  {evaluation.listening.answers.map((answer) => (
+                    <div key={answer.k}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedK(selectedK === answer.k ? null : answer.k)}
+                        className={cn(
+                          "w-full rounded-lg border px-3 py-2.5 text-left transition-all",
+                          selectedK === answer.k ? "border-indigo-400/60 bg-indigo-400/10 shadow-lg shadow-indigo-500/10" : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-200 text-xs font-bold flex items-center justify-center">
+                            {answer.k}
+                          </div>
+                          <div className="flex-1 text-sm text-white/80 leading-relaxed">
+                            {answer.original ? formatText(answer.original) : <span className="italic text-white/50">Click to view details</span>}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className={cn(
+                              "text-xs font-semibold px-2.5 py-0.5 rounded whitespace-nowrap",
+                              answer.correctness === "Correct" ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30" :
+                              answer.correctness === "Partially Correct" ? "bg-amber-500/20 text-amber-200 border border-amber-400/30" :
+                              "bg-rose-500/20 text-rose-200 border border-rose-400/30"
+                            )}>
+                              {answer.correctness}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                      
+                      {selectedK === answer.k && (
+                        <div className="mt-2 rounded-lg border border-indigo-400/30 bg-gradient-to-br from-indigo-500/20 to-purple-500/15 p-2.5 shadow-lg">
+                          <div className="space-y-2 text-[11px]">
+                            {answer.original && (
+                              <div className="rounded-lg bg-black/20 p-2">
+                                <div className="font-semibold text-white/90 mb-0.5">Original:</div>
+                                <div className="text-white/75 leading-relaxed">{formatText(answer.original)}</div>
+                              </div>
+                            )}
+                            {answer.correctVersion && answer.correctness !== "Correct" && (
+                              <div className="rounded-lg bg-emerald-500/10 border border-emerald-400/20 p-2">
+                                <div className="font-semibold text-emerald-200 mb-0.5">Correct:</div>
+                                <div className="text-emerald-100 leading-relaxed">{formatText(answer.correctVersion)}</div>
+                              </div>
+                            )}
+                            {answer.errorReason && answer.errorReason !== "N/A" && answer.errorReason !== "—" && answer.errorReason.trim() !== "" && (
+                              <div className="rounded-lg bg-white/5 border border-white/10 p-2">
+                                <div className="font-semibold text-white/90 mb-0.5">Reason:</div>
+                                <div className="text-white/75 leading-relaxed">{formatText(answer.errorReason)}</div>
+                              </div>
+                            )}
+                            {answer.feedback && answer.feedback !== "N/A" && answer.feedback !== "—" && answer.feedback.trim() !== "" && (
+                              <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-2">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span>💡</span>
+                                  <div className="font-semibold text-amber-200">Tip:</div>
+                                </div>
+                                <div className="text-amber-100 leading-relaxed">{formatText(answer.feedback)}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
+                <div className="text-sm text-white/60">
+                  {evaluation.listening && evaluation.listening.scorePercent !== undefined 
+                    ? `Listening was evaluated with a score of ${Math.round(evaluation.listening.scorePercent)}%, but detailed feedback is not available for this evaluation.`
+                    : "No listening results available."}
                 </div>
               </div>
             )}

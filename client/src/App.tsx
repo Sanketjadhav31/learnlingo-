@@ -61,7 +61,7 @@ export default function App() {
   async function load() {
     if (!authUser) return;
     console.log(`🔄 [Frontend] Loading day for user: ${authUser.userId}`);
-    setLoadingState({ isLoading: true, message: "Loading your lesson...", submessage: "Fetching day content and progress" });
+    setLoadingState({ isLoading: true, message: "Loading your lesson...", submessage: "Fetching day content and progress. this may take 30-60 second please wait." });
     try {
       console.log(`📡 [Frontend] Fetching day data...`);
       const data = await fetchDay();

@@ -3,6 +3,7 @@ const cors = require("cors");
 // Load environment variables from server/.env explicitly.
 require("dotenv").config({ path: require("path").join(__dirname, "..", ".env") });
 
+const logger = require("./logger");
 const { connectMongo } = require("./mongo/connect");
 const { stateStoreFactory } = require("./state/stateStore");
 const { getUserAuthModel } = require("./mongo/models/UserAuth");
@@ -76,20 +77,18 @@ async function getOrGenerateDayContent({ stateStore, userId, state }) {
 
   const todayIST = getISTDate();
 
-  console.log(`  🔍 Checking day content: dayNumber=${state.dayContent?.dayNumber}, currentDay=${state.currentDay}, generatedDate=${state.dayContentGeneratedDate}, todayIST=${todayIST}`);
-
   // Check if we already have today's content in DB
   if (state.dayContent && 
       state.dayContent.dayNumber === state.currentDay &&
       state.dayContentGeneratedDate === todayIST) {
-    console.log(`  ✓ Using cached day content from DB (generated today: ${todayIST})`);
+    
     return state;
   }
 
   // If content exists for current day but was generated on a different date, still use it
   // (Don't regenerate content just because the date changed - only regenerate when day advances)
   if (state.dayContent && state.dayContent.dayNumber === state.currentDay) {
-    console.log(`  ✓ Using existing day content from DB (Day ${state.currentDay}, generated: ${state.dayContentGeneratedDate || 'unknown'})`);
+    
     // Update the generated date to today so we don't regenerate
     state.dayContentGeneratedDate = todayIST;
     await stateStore.save(userId, state);
@@ -107,14 +106,14 @@ async function getOrGenerateDayContent({ stateStore, userId, state }) {
     
     // Double-check after acquiring lock
     if (latest.dayContent && latest.dayContent.dayNumber === latest.currentDay) {
-      console.log(`  ✓ Another request already generated content for Day ${latest.currentDay}`);
+
       // Update the generated date
       latest.dayContentGeneratedDate = todayIST;
       await stateStore.save(userId, latest);
       return;
     }
 
-    console.log(`  🔄 Generating new day content via Gemini API (Day ${latest.currentDay})`);
+    
     const previousDaySummary = latest.lastEvaluation || null;
     const newDay = await generateDayContentGemini({
       state: latest,
@@ -144,7 +143,7 @@ async function getOrGenerateDayContent({ stateStore, userId, state }) {
     // New day starts with fresh section progress.
     getOrCreateDayProgress(latest, latest.currentDay);
     await stateStore.save(userId, latest);
-    console.log(`  ✓ New day content saved to DB (generated: ${todayIST})`);
+    
   })();
 
   dayGenerationLocks.set(lockKey, run);
@@ -166,28 +165,31 @@ async function main() {
     const start = Date.now();
     const requestId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
     req.requestId = requestId;
-    console.log(`\n→ [${new Date().toISOString()}] [${requestId}] ${req.method} ${req.path}`);
-    console.log(`  Query:`, req.query);
-    if (req.method === "POST" && req.body) {
-      console.log(`  Body:`, JSON.stringify(req.body).slice(0, 200));
-    }
     
+    // Log incoming request
+    logger.apiRequest(req.method, req.path, req.query, req.body);
+
     res.on("finish", () => {
       const duration = Date.now() - start;
-      console.log(`← [${new Date().toISOString()}] [${requestId}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+      // Create summary based on endpoint
+      let summary = '';
+      if (req.path.includes('/submit')) summary = res.statusCode === 200 ? 'submitted' : 'failed';
+      else if (req.path.includes('/day')) summary = res.statusCode === 200 ? 'loaded' : 'error';
+      else if (req.path.includes('/reset')) summary = 'reset';
+      
+      logger.apiResponse(req.method, req.path, res.statusCode, duration, summary);
     });
     next();
   });
 
-  console.log("\n🔌 Connecting to MongoDB...");
   const mongoConn = await connectMongo(process.env.MONGODB_URI);
-  console.log("✓ MongoDB connection established\n");
+  logger.storage(mongoConn.enabled ? 'MongoDB' : 'File-based');
   
   const stateStore = stateStoreFactory({ mongoConn });
   const UserAuth = getUserAuthModel();
 
   app.get("/api/health", (req, res) => {
-    console.log("  ✓ Health check passed");
+
     res.json({ ok: true });
   });
 
@@ -207,6 +209,7 @@ async function main() {
     const userId = String(user._id);
     await stateStore.getOrCreate(userId);
     const token = signAuthToken({ userId, email: user.email, name: user.name });
+    logger.authSignup(email);
     return res.json({ ok: true, token, user: { userId, name: user.name, email: user.email } });
   });
 
@@ -214,13 +217,20 @@ async function main() {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
     const user = await UserAuth.findOne({ email });
-    if (!user) return res.status(404).json({ ok: false, reject: { message: "Email not registered." } });
+    if (!user) {
+      logger.authFailed(email, 'email not found');
+      return res.status(404).json({ ok: false, reject: { message: "Email not registered." } });
+    }
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return res.status(401).json({ ok: false, reject: { message: "Incorrect password." } });
+    if (!valid) {
+      logger.authFailed(email, 'incorrect password');
+      return res.status(401).json({ ok: false, reject: { message: "Incorrect password." } });
+    }
     user.lastLoginAt = new Date();
     await user.save();
     const userId = String(user._id);
     const token = signAuthToken({ userId, email: user.email, name: user.name });
+    logger.authLogin(email);
     return res.json({ ok: true, token, user: { userId, name: user.name, email: user.email } });
   });
 
@@ -232,11 +242,9 @@ async function main() {
 
   app.get("/api/status", authRequired, async (req, res) => {
     const userId = req.userId;
-    console.log(`  📊 Fetching status for user: ${userId}`);
-    
+
     const state = await stateStore.getOrCreate(userId);
-    console.log(`  ✓ User state retrieved - Day ${state.currentDay}`);
-    
+
     res.json({
       tracker: state.tracker,
       currentDay: state.currentDay,
@@ -248,18 +256,16 @@ async function main() {
   app.get("/api/day", authRequired, async (req, res) => {
     const routeStart = Date.now();
     const userId = req.userId;
-    console.log(`  📅 Loading day content for user: ${userId}`);
-    
+
     let state = await stateStore.getOrCreate(userId);
-    console.log(`  ✓ User state loaded - Current day: ${state.currentDay}`);
 
     try {
       state = await getOrGenerateDayContent({ stateStore, userId, state });
       if (state.dayContent?.dayNumber === state.currentDay) {
-        console.log(`  ✓ Using day content from MongoDB cache (day ${state.dayContent.dayNumber})`);
+        
       }
     } catch (e) {
-      console.error(`  ❌ Day generation failed:`, e instanceof Error ? e.message : e);
+
       return res.status(500).json({
         ok: false,
         reject: { message: e instanceof Error ? e.message : "Day generation failed" },
@@ -280,7 +286,7 @@ async function main() {
         analyticsCreated = true;
       }
     } catch (e) {
-      console.error(`  ❌ Analytics save failed:`, e instanceof Error ? e.message : e);
+
       return res.status(500).json({
         ok: false,
         reject: { message: "Failed to initialize daily analytics." },
@@ -297,19 +303,35 @@ async function main() {
     // Debug vocabulary data
     const vocabCount = state.dayContent?.vocabAndTracks?.wordOfDay?.length || 0;
     const vocabSample = state.dayContent?.vocabAndTracks?.wordOfDay?.[0];
-    console.log(`  📚 Vocabulary in response: ${vocabCount} words, sample:`, vocabSample ? `${vocabSample.word}:${vocabSample.definition}` : 'none');
     
-    console.log(`  📊 Checking draft - currentDay: ${state.currentDay}`);
-    console.log(`  📊 submissionDraft object:`, state.submissionDraft);
-    console.log(`  📊 submissionDraft keys:`, state.submissionDraft ? Object.keys(state.submissionDraft) : 'null');
+    console.log(`📤 Sending day content to frontend:`);
+    console.log(`   Vocabulary count: ${vocabCount}`);
+    if (vocabSample) {
+      console.log(`   Vocabulary[0]: ${vocabSample.word}`);
+      console.log(`   Vocabulary[0].hindiMeaning: "${vocabSample.hindiMeaning}"`);
+      console.log(`   Vocabulary[0].examples: ${vocabSample.examples?.length || 0} items`);
+      if (vocabSample.examples && vocabSample.examples.length > 0) {
+        console.log(`   Vocabulary[0].examples[0]: "${vocabSample.examples[0]?.substring(0, 50)}..."`);
+      }
+    }
+    const pronSample = state.dayContent?.pronunciation?.words?.[0];
+    if (pronSample) {
+      console.log(`   Pronunciation[0]: ${pronSample.word}`);
+      console.log(`   Pronunciation[0].hindiMeaning: "${pronSample.hindiMeaning}"`);
+      console.log(`   Pronunciation[0].examples: ${pronSample.examples?.length || 0} items`);
+    }
+
+
+
+    
     
     const draftText = state.submissionDraft?.[state.currentDay]?.text || "";
-    console.log(`  💾 Draft in response: ${draftText.length} chars`);
+
     if (draftText.length > 0) {
-      console.log(`  💾 Draft preview: ${draftText.substring(0, 100)}...`);
+      
     }
     
-    console.log(`  ⏱ /api/day total time: ${elapsedMs(routeStart)}ms`);
+    
 
     // Prevent caching since draft data changes frequently
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -352,27 +374,18 @@ async function main() {
   app.patch("/api/day/draft", authRequired, async (req, res) => {
     const userId = req.userId;
     const draftText = String(req.body?.draftText || "");
-    
-    console.log(`  💾 Saving draft - User: ${userId}, Day: ?, Length: ${draftText.length} chars`);
-    
+
     const state = await stateStore.getOrCreate(userId);
-    console.log(`  📊 Current day: ${state.currentDay}`);
-    console.log(`  📊 Existing submissionDraft:`, state.submissionDraft);
-    
+
+
     if (!state.submissionDraft) state.submissionDraft = {};
     state.submissionDraft[state.currentDay] = {
       text: draftText,
       savedAt: nowIso(),
     };
-    
-    console.log(`  ✅ Draft set for day ${state.currentDay}:`, {
-      length: state.submissionDraft[state.currentDay].text.length,
-      savedAt: state.submissionDraft[state.currentDay].savedAt
-    });
-    
+
     await stateStore.save(userId, state);
-    
-    console.log(`  ✓ Draft saved to database for day ${state.currentDay}`);
+
     return res.json({ ok: true });
   });
 
@@ -381,23 +394,21 @@ async function main() {
     const userId = req.userId;
     const submissionText = String(req.body?.submissionText || "");
     const timeSpentMinutes = Number(req.body?.timeSpentMinutes || 0);
-    console.log(`  📝 Processing submission for user: ${userId}`);
-    console.log(`  📏 Submission length: ${submissionText.length} characters`);
+    logger.submitStart(userId, submissionText.length, timeSpentMinutes);
+
     const submitPreview = submissionText.slice(0, 80).replace(/\s+/g, " ");
-    console.log(`  🔎 Submission preview: "${submitPreview}${submissionText.length > 80 ? "..." : ""}"`);
-    
+
     if (!submissionText.trim()) {
-      console.log(`  ❌ Submission rejected: empty text`);
       return res.status(400).json({ ok: false, reject: { message: "Submission text is empty." } });
     }
 
     let state = await stateStore.getOrCreate(userId);
     const loadStateMs = elapsedMs(routeStart);
-    console.log(`  ✓ User state loaded - Day ${state.currentDay}`);
-    console.log(`  ⏱ Load state time: ${loadStateMs}ms`);
+
     try {
       state = await getOrGenerateDayContent({ stateStore, userId, state });
     } catch (e) {
+      logger.error('Day generation', e instanceof Error ? e.message : e);
       return res.status(500).json({
         ok: false,
         reject: { message: e instanceof Error ? e.message : "Day generation failed" },
@@ -405,45 +416,44 @@ async function main() {
     }
 
     const dayContent = state.dayContent;
-    console.log(`  📚 Day meta: day=${dayContent?.dayNumber}, type=${dayContent?.dayType}, sentenceCount=${dayContent?.submissionTemplate?.sentenceCount}, questionCount=${dayContent?.submissionTemplate?.questionCount}`);
 
-    console.log(`  🔍 Validating submission format...`);
     const validateStart = Date.now();
     const validation = parseAndValidateSubmission({ submissionText, dayContent });
     if (!validation.ok) {
-      console.log(`  ❌ Validation failed: ${validation.reason}`);
+      logger.validation(false, validation.reason);
       return res.status(400).json({
         ok: false,
         reject: { message: validation.reason, details: validation.details || [] },
       });
     }
-    console.log(`  ✓ Submission format validated`);
-    console.log(`  ⏱ Validation time: ${elapsedMs(validateStart)}ms`);
-      console.log(`  🧠 Parsed submission: sentences=${validation.parsed?.sentencePractice?.length || 0}, questions=${validation.parsed?.questions?.length || 0}`);
+    logger.validation(true);
+
+    
 
     const evalStart = Date.now();
     let evaluation;
     try {
-      console.log(`  🤖 Evaluating submission with AI...`);
+      logger.evalStart();
       evaluation = await evaluateSubmissionGemini({
         dayContent,
         submissionParsed: validation.parsed,
         state,
       });
-      console.log(
-        `  ✓ Evaluation completed - Score: ${evaluation.overallPercent}% (${evaluation.tier}, ${evaluation.passFail}). ` +
-          `counts: sentences=${evaluation.sentenceEvaluations?.length || 0}, questions=${evaluation.questions?.answers?.length || 0}, listening=${evaluation.listening?.answers?.length || 0}`
-      );
+      const passThreshold = dayContent.dayType === "weekly_review" ? 75 : 70;
+      const passed = evaluation.overallPercent >= passThreshold;
+      logger.evalComplete(evaluation.overallPercent, evaluation.tier, passed, elapsedMs(evalStart));
+      
+      // Log score breakdown
+      if (evaluation.scoreBreakdown) {
+        logger.scoreBreakdown(evaluation.scoreBreakdown);
+      }
+      
       // Compact breakdown distribution for easy debug.
       const sent = Array.isArray(evaluation.sentenceEvaluations) ? evaluation.sentenceEvaluations : [];
       const sentCorrect = sent.filter((s) => s?.correctness === "Correct").length;
       const sentIncorrect = sent.length - sentCorrect;
-      console.log(
-        `  📊 scoreBreakdown: grammar(sentences)=${evaluation.scoreBreakdown?.sentencesPercent ?? "?"} writing=${evaluation.scoreBreakdown?.writingPercent ?? "?"} speaking=${evaluation.scoreBreakdown?.speakingPercent ?? "?"} conversation=${evaluation.scoreBreakdown?.conversationPercent ?? "?"} q=${evaluation.scoreBreakdown?.questionsPercent ?? "?"} listening=${evaluation.scoreBreakdown?.listeningPercent ?? "?"}`
-      );
-      console.log(`  🔢 sentences correctness: Correct=${sentCorrect} Incorrect=${sentIncorrect}`);
     } catch (e) {
-      console.error(`  ❌ Evaluation failed:`, e instanceof Error ? e.message : e);
+      logger.error('Evaluation', e instanceof Error ? e.message : e);
       return res.status(500).json({
         ok: false,
         reject: {
@@ -451,7 +461,7 @@ async function main() {
         },
       });
     }
-    console.log(`  ⏱ AI evaluation time: ${elapsedMs(evalStart)}ms`);
+    
 
     const progress = getOrCreateDayProgress(state, state.currentDay);
     if (progress.sectionsReadCount < REQUIRED_SECTION_COUNT) {
@@ -462,7 +472,6 @@ async function main() {
     }
     progress.submissionStatus = "submitted";
 
-    console.log(`  📊 Updating user state after evaluation...`);
     const updatedState = updateStateAfterEvaluation({
       state,
       dayContent,
@@ -494,9 +503,16 @@ async function main() {
     updatedDayProgress.dayCompleted = nextAction === "advance";
     updatedDayProgress.dayAdvanced = nextAction === "advance";
     await stateStore.save(userId, updatedState);
-    console.log(`  ✓ State saved - New day: ${updatedState.currentDay}`);
-    console.log(`  ✓ Submission processed - Action: ${nextAction}`);
-    console.log(`  ⏱ /api/submit total time: ${elapsedMs(routeStart)}ms`);
+    
+    // Log day advancement or retry
+    if (nextAction === "advance") {
+      logger.dayAdvance(state.currentDay, updatedState.currentDay);
+    } else {
+      const attempt = Number(updatedState.attemptsByDay?.[String(state.currentDay)] || 1);
+      logger.dayRetry(state.currentDay, attempt);
+    }
+    
+    logger.info(`Submit complete: ${nextAction}, total time ${elapsedMs(routeStart)}ms`);
 
     res.json({
       ok: true,
@@ -602,9 +618,9 @@ async function main() {
   // POST /api/reset - Full reset (all progress)
   app.post("/api/reset", authRequired, async (req, res) => {
     const userId = req.userId;
-    console.log(`  🔄 Full reset: ${userId}`);
+
     await stateStore.reset(userId);
-    console.log(`  ✓ Full reset completed`);
+
     res.json({ ok: true });
   });
 
@@ -612,7 +628,7 @@ async function main() {
   app.post("/api/reset/today", authRequired, async (req, res) => {
     const userId = req.userId;
     const forceRegenerate = req.body?.forceRegenerate === true;
-    console.log(`  🔄 Reset today only: ${userId}${forceRegenerate ? ' (force regenerate)' : ''}`);
+    
     
     try {
       const state = await stateStore.getOrCreate(userId);
@@ -626,7 +642,7 @@ async function main() {
       
       // Force regenerate day content if requested
       if (forceRegenerate) {
-        console.log(`  🔄 Force regenerating day ${currentDay} content...`);
+
         state.dayContent = null;
         state.dayContentGeneratedDate = null;
       }
@@ -663,10 +679,10 @@ async function main() {
       state.tracker.finalStatus = "Waiting for Submission";
       
       await stateStore.save(userId, state);
-      console.log(`  ✓ Today's work reset completed for day ${currentDay}`);
+
       res.json({ ok: true, message: `Day ${currentDay} reset successfully` });
     } catch (error) {
-      console.error(`  ❌ Reset today failed:`, error);
+
       res.status(500).json({ ok: false, reject: { message: "Failed to reset today" } });
     }
   });
@@ -674,8 +690,7 @@ async function main() {
   // GET /api/history - Get all past days' work and results
   app.get("/api/history", authRequired, async (req, res) => {
     const userId = req.userId;
-    console.log(`  📚 GET /api/history - User: ${userId}`);
-    
+
     try {
       const state = await stateStore.getOrCreate(userId);
       
@@ -691,8 +706,7 @@ async function main() {
         grammarFocus: entry.grammarFocus || "Unknown",
         fullEvaluation: entry.fullEvaluation || null,
       }));
-      
-      console.log(`  ✓ History retrieved - ${history.length} days`);
+
       res.json({ 
         ok: true, 
         history,
@@ -701,7 +715,7 @@ async function main() {
         streak: state.tracker.streak,
       });
     } catch (error) {
-      console.error(`  ❌ Error retrieving history:`, error);
+
       res.status(500).json({ ok: false, reject: { message: "Failed to retrieve history" } });
     }
   });
@@ -709,21 +723,20 @@ async function main() {
   // GET /api/progress - Get user progress dashboard
   app.get("/api/progress", authRequired, async (req, res) => {
     const userId = req.userId;
-    console.log(`  📊 GET /api/progress - User: ${userId}`);
-    
+
     try {
       const { getUserProgress } = require("./trainer/progressService");
       const state = await stateStore.getOrCreate(userId);
       
       const progress = getUserProgress(state);
       
-      console.log(`  ✓ Progress retrieved - ${progress.daysCompleted}/${progress.totalDays} days (${progress.percentComplete}%)`);
+      
       res.json({ 
         ok: true, 
         progress,
       });
     } catch (error) {
-      console.error(`  ❌ Error retrieving progress:`, error);
+
       res.status(500).json({ ok: false, reject: { message: "Failed to retrieve progress" } });
     }
   });
@@ -740,33 +753,27 @@ async function main() {
   app.get("/api/test", authRequired, async (req, res) => {
     const routeStart = Date.now();
     const userId = req.userId;
-    console.log(`  📝 GET /api/test - User: ${userId}`);
-    
+
     try {
       const state = await stateStore.getOrCreate(userId);
       
       // Check if currentTest exists and is for current day
       if (!state.currentTest || state.currentTest.forDay !== state.currentDay) {
-        console.log(`  ℹ No valid test for current day`);
-        console.log(`  ⏱ GET /api/test completed in ${Date.now() - routeStart}ms`);
+
+        
         return res.json({ ok: true, test: null, status: "no_test" });
       }
       
       // Strip correct answers if status is "pending"
       const test = stripCorrectAnswers(state.currentTest);
       
-      console.log(`  ✓ Test retrieved - Status: ${state.currentTest.status}, Questions: ${state.currentTest.questions.length}, Answered: ${Object.keys(state.currentTest.userAnswers).length}`);
-      console.log(`  ⏱ GET /api/test completed in ${Date.now() - routeStart}ms`);
+      
+      
       return res.json({ ok: true, test, status: state.currentTest.status });
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`  ❌ Error retrieving test:`, {
-        userId,
-        error: errorMsg,
-        stack: error instanceof Error ? error.stack : undefined,
-        duration: Date.now() - routeStart
-      });
+      
       return sendError(res, 500, "Failed to retrieve test");
     }
   });
@@ -775,20 +782,17 @@ async function main() {
   app.post("/api/test/generate", authRequired, async (req, res) => {
     const routeStart = Date.now();
     const userId = req.userId;
-    console.log(`  📝 POST /api/test/generate - User: ${userId}`);
-    
+
     try {
       const state = await stateStore.getOrCreate(userId);
       
       // Verify eligibility (passed today's evaluation)
       if (!state.lastEvaluation || state.lastEvaluation.overallPercent < 76) {
-        console.log(`  ⚠ User not eligible - No evaluation or score < 76%`);
-        console.log(`  ⏱ POST /api/test/generate completed in ${Date.now() - routeStart}ms`);
+
+        
         return sendError(res, 403, "Complete daily evaluation with ≥76% to access test");
       }
-      
-      console.log(`  ✓ User eligible - Generating test for Day ${state.currentDay}`);
-      
+
       // Generate test
       const genStart = Date.now();
       const testResult = await generateTestGemini({
@@ -811,9 +815,8 @@ async function main() {
       };
       
       await stateStore.save(userId, state);
+
       
-      console.log(`  ✓ Test generated successfully - ${testResult.questions.length} questions`);
-      console.log(`  ⏱ Test generation: ${genDuration}ms, Total: ${Date.now() - routeStart}ms`);
       
       // Strip correct answers before returning
       const test = stripCorrectAnswers(state.currentTest);
@@ -821,14 +824,7 @@ async function main() {
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`  ❌ Error generating test:`, {
-        userId,
-        error: errorMsg,
-        stack: error instanceof Error ? error.stack : undefined,
-        duration: Date.now() - routeStart,
-        isQuotaError: errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota"),
-        isTimeoutError: errorMsg.toLowerCase().includes("timeout")
-      });
+      
       
       // Return specific error messages
       if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota")) {
@@ -851,7 +847,7 @@ async function main() {
       const state = await stateStore.getOrCreate(userId);
       
       if (!state.currentTest || state.currentTest.status !== "pending") {
-        console.log(`  ⚠ Auto-save rejected - No active test (userId: ${userId})`);
+        
         return sendError(res, 400, "No active test");
       }
       
@@ -861,7 +857,7 @@ async function main() {
       );
       
       if (!questionExists) {
-        console.log(`  ⚠ Auto-save rejected - Invalid question ID: ${questionId} (userId: ${userId})`);
+        
         return sendError(res, 400, "Invalid question ID");
       }
       
@@ -870,19 +866,13 @@ async function main() {
       await stateStore.save(userId, state);
       
       const totalAnswered = Object.keys(state.currentTest.userAnswers).length;
-      console.log(`  ✓ Auto-save successful - Question: ${questionId}, Progress: ${totalAnswered}/20, Duration: ${Date.now() - routeStart}ms`);
+      
       
       return res.json({ ok: true });
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`  ❌ Error saving answer:`, {
-        userId,
-        questionId,
-        error: errorMsg,
-        stack: error instanceof Error ? error.stack : undefined,
-        duration: Date.now() - routeStart
-      });
+      
       return sendError(res, 500, "Failed to save answer");
     }
   });
@@ -891,25 +881,22 @@ async function main() {
   app.post("/api/test/submit", authRequired, async (req, res) => {
     const routeStart = Date.now();
     const userId = req.userId;
-    console.log(`  📝 POST /api/test/submit - User: ${userId}`);
-    
+
     try {
       const state = await stateStore.getOrCreate(userId);
       
       if (!state.currentTest || state.currentTest.status !== "pending") {
-        console.log(`  ⚠ Submission rejected - No active test (userId: ${userId})`);
+        
         return sendError(res, 400, "No active test");
       }
       
       // Validate submission completeness
       const validation = validateTestSubmission(state.currentTest);
       if (!validation.ok) {
-        console.log(`  ⚠ Validation failed:`, validation.details);
+
         return sendError(res, 400, validation.message, validation.details);
       }
-      
-      console.log(`  ✓ Validation passed - Evaluating test`);
-      
+
       // Evaluate test
       const evalStart = Date.now();
       const evaluation = await evaluateTestGemini({
@@ -923,23 +910,15 @@ async function main() {
       state.currentTest.status = "evaluated";
       state.currentTest.result = evaluation;
       await stateStore.save(userId, state);
+
       
-      console.log(`  ✓ Test evaluated - Score: ${evaluation.overallScore}%, Passed: ${evaluation.passed}, Correct: ${evaluation.correctCount}/20`);
-      console.log(`  ⏱ Evaluation: ${evalDuration}ms, Total: ${Date.now() - routeStart}ms`);
       
       // Return evaluation and full test (with correct answers)
       return res.json({ ok: true, evaluation, test: state.currentTest });
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`  ❌ Error submitting test:`, {
-        userId,
-        error: errorMsg,
-        stack: error instanceof Error ? error.stack : undefined,
-        duration: Date.now() - routeStart,
-        isQuotaError: errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota"),
-        isTimeoutError: errorMsg.toLowerCase().includes("timeout")
-      });
+      
       
       // Check for specific error types
       if (errorMsg.includes("quota") || errorMsg.includes("429")) {
@@ -956,13 +935,12 @@ async function main() {
   app.post("/api/test/retake", authRequired, async (req, res) => {
     const routeStart = Date.now();
     const userId = req.userId;
-    console.log(`  📝 POST /api/test/retake - User: ${userId}`);
-    
+
     try {
       const state = await stateStore.getOrCreate(userId);
       
       if (!state.currentTest || state.currentTest.status !== "evaluated") {
-        console.log(`  ⚠ Retake rejected - No evaluated test (userId: ${userId})`);
+        
         return sendError(res, 400, "No evaluated test to retake");
       }
       
@@ -971,9 +949,8 @@ async function main() {
       state.currentTest.status = "pending";
       state.currentTest.result = null;
       await stateStore.save(userId, state);
+
       
-      console.log(`  ✓ Test reset for retake - TestId: ${state.currentTest.testId}`);
-      console.log(`  ⏱ POST /api/test/retake completed in ${Date.now() - routeStart}ms`);
       
       // Return test with stripped correct answers
       const test = stripCorrectAnswers(state.currentTest);
@@ -981,12 +958,7 @@ async function main() {
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`  ❌ Error retaking test:`, {
-        userId,
-        error: errorMsg,
-        stack: error instanceof Error ? error.stack : undefined,
-        duration: Date.now() - routeStart
-      });
+      
       return sendError(res, 500, "Failed to reset test");
     }
   });
@@ -995,21 +967,18 @@ async function main() {
   app.post("/api/test/new", authRequired, async (req, res) => {
     const routeStart = Date.now();
     const userId = req.userId;
-    console.log(`  📝 POST /api/test/new - User: ${userId}`);
-    
+
     try {
       const state = await stateStore.getOrCreate(userId);
       
       if (!state.currentTest || state.currentTest.status !== "evaluated") {
-        console.log(`  ⚠ New test rejected - Can only generate after evaluation (userId: ${userId})`);
+        
         return sendError(res, 400, "Can only generate new test after evaluation");
       }
       
       // Increment version number
       const newVersion = state.currentTest.version + 1;
-      
-      console.log(`  ✓ Generating new test version ${newVersion} for Day ${state.currentDay}`);
-      
+
       // Generate new test
       const genStart = Date.now();
       const testResult = await generateTestGemini({
@@ -1033,9 +1002,8 @@ async function main() {
       };
       
       await stateStore.save(userId, state);
+
       
-      console.log(`  ✓ New test generated - Version ${newVersion}, ${testResult.questions.length} questions`);
-      console.log(`  ⏱ Test generation: ${genDuration}ms, Total: ${Date.now() - routeStart}ms`);
       
       // Return new test with stripped correct answers
       const test = stripCorrectAnswers(state.currentTest);
@@ -1043,14 +1011,7 @@ async function main() {
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`  ❌ Error generating new test:`, {
-        userId,
-        error: errorMsg,
-        stack: error instanceof Error ? error.stack : undefined,
-        duration: Date.now() - routeStart,
-        isQuotaError: errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota"),
-        isTimeoutError: errorMsg.toLowerCase().includes("timeout")
-      });
+      
       
       // Return specific error messages
       if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota")) {
@@ -1064,16 +1025,16 @@ async function main() {
   });
 
   app.listen(PORT, () => {
-    console.log(`\n${"=".repeat(50)}`);
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📝 Logging enabled for all routes and processes`);
-    console.log(`${"=".repeat(50)}\n`);
+    
+
+
+    
   });
 }
 
 main().catch((err) => {
   // eslint-disable-next-line no-console
-  console.error(err);
+
   process.exit(1);
 });
 

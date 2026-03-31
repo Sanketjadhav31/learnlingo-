@@ -545,6 +545,9 @@ export function SubmissionEditor(props: {
                 <div className="text-sm font-semibold text-white">Sentence Practice ({template.sentenceCount} sentences)</div>
                 <ResetButton onReset={() => resetField("sentences")} label="Reset" className="text-[10px] px-2 py-1" />
               </div>
+              <div className="text-xs text-white/60 bg-indigo-500/10 border border-indigo-400/30 rounded p-2 mb-3">
+                ✍️ Write complete, grammatically correct sentences based on each prompt. Use today's grammar topic in your sentences.
+              </div>
               {props.day.sentencePractice.items.map((item, i) => {
                 // Clean up the prompt - if it's too long or contains instructions, simplify it
                 let displayPrompt = item.prompt;
@@ -559,7 +562,7 @@ export function SubmissionEditor(props: {
                       value={formData.sentences[i] || ""}
                       onChange={(e) => updateArrayItem("sentences", i, e.target.value)}
                       className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white/90 outline-none focus:border-white/20"
-                      placeholder="Your sentence..."
+                      placeholder="Write a complete sentence here..."
                     />
                   </div>
                 );
