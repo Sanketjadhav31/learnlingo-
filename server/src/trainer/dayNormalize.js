@@ -107,16 +107,26 @@ function extractPronunciationWords(pronRaw) {
     pronRaw.rules, // Gemini sometimes returns rules array
   ];
 
-  for (const c of candidates) {
+  console.log('🔍 extractPronunciationWords - checking candidates...');
+  
+  for (let i = 0; i < candidates.length; i++) {
+    const c = candidates[i];
+    console.log(`🔍 Candidate ${i}: type=${Array.isArray(c) ? 'array' : typeof c}, length=${Array.isArray(c) ? c.length : 'N/A'}`);
+    
     if (Array.isArray(c) && c.length > 0) {
+      console.log(`🔍 Candidate ${i} first item:`, JSON.stringify(c[0], null, 2));
+      
       // If it's a rules array, extract words from exampleWords
       if (c[0] && c[0].exampleWords && Array.isArray(c[0].exampleWords)) {
+        console.log('🔍 Found rules array with exampleWords, processing...');
         const extracted = [];
         for (const rule of c) {
           if (rule.exampleWords && Array.isArray(rule.exampleWords)) {
+            console.log(`🔍 Processing rule with ${rule.exampleWords.length} example words:`, rule.exampleWords);
             for (const wordStr of rule.exampleWords) {
               // Parse "walks /wɔːks/ (sounds like 's')" format
-              const match = String(wordStr).match(/^(\w+)\s+\/([\w\s:ː]+)\//);
+              const match = String(wordStr).match(/^(\w+)\s+\/([\w\s:ːɔɪʊəæɛʌɑɒʃʒθðŋ]+)\//);
+              console.log(`🔍 Parsing "${wordStr}" -> match:`, match ? `${match[1]} /${match[2]}/` : 'NO MATCH');
               if (match) {
                 extracted.push({
                   word: match[1],
@@ -127,22 +137,36 @@ function extractPronunciationWords(pronRaw) {
             }
           }
         }
+        console.log(`🔍 Extracted ${extracted.length} pronunciation words from rules array`);
         if (extracted.length > 0) return extracted;
       }
+      
+      // Otherwise return the array as-is
+      console.log(`🔍 Returning candidate ${i} as-is (${c.length} items)`);
       return c;
     }
     if (c && typeof c === "object" && !Array.isArray(c)) {
       const arr = ensureArray(c);
-      if (arr.length > 0) return arr;
+      if (arr.length > 0) {
+        console.log(`🔍 Converted candidate ${i} to array (${arr.length} items)`);
+        return arr;
+      }
     }
   }
 
   const asArr = ensureArray(pronRaw);
-  if (asArr.length > 0) return asArr;
+  if (asArr.length > 0) {
+    console.log(`🔍 Converted pronRaw itself to array (${asArr.length} items)`);
+    return asArr;
+  }
 
   // pronRaw itself is a single word entry
-  if (pronRaw.word || pronRaw.ipa || pronRaw.phonetic) return [pronRaw];
+  if (pronRaw.word || pronRaw.ipa || pronRaw.phonetic) {
+    console.log('🔍 pronRaw is a single word entry');
+    return [pronRaw];
+  }
 
+  console.log('🔍 No valid pronunciation data found');
   return [];
 }
 
