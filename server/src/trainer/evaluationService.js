@@ -408,23 +408,21 @@ function normalizeEvaluationShape(input) {
   const speakingPercent = toPercent(speakingNode.scorePercent ?? speakingNode.score ?? breakdownNode.speakingPercent, sentencesPercent);
   const conversationPercent = toPercent(conversationNode.scorePercent ?? conversationNode.score ?? breakdownNode.conversationPercent, sentencesPercent);
   
-  // Advanced weighted calculation with more balanced distribution
-  // Grammar/Sentences are important but shouldn't dominate
-  // Writing, Speaking, Conversation are core skills and should have significant weight
+  // Simple average calculation: sum all 7 subject percentages and divide by 7
   const computedOverall =
     src.overallPercent ??
     src.overallScore ??
     src.overall_score ??
     src.overallPercentage ??
     Math.round((
-      sentencesPercent * 0.30 +           // Grammar/Sentences: 30% (increased from 25%)
-      hindiTranslationPercent * 0.10 +    // Hindi Translation: 10%
-      writingPercent * 0.20 +             // Writing: 20%
-      speakingPercent * 0.20 +            // Speaking: 20% (increased from 15%)
-      conversationPercent * 0.15 +        // Conversation: 15%
-      questionsPercent * 0.03 +           // Questions: 3% (reduced from 8%)
-      listeningPercent * 0.02             // Listening: 2% (reduced from 7%)
-    ) * 100) / 100;
+      sentencesPercent +
+      hindiTranslationPercent +
+      writingPercent +
+      speakingPercent +
+      conversationPercent +
+      questionsPercent +
+      listeningPercent
+    ) / 7);
   const overallPercent = toPercent(computedOverall, 0);
   const passFailRaw = String(src.passFail ?? src.pass_fail ?? src.result ?? (overallPercent >= 70 ? "PASS" : "FAIL")).toUpperCase();
   const passFail = passFailRaw.includes("PASS") ? "PASS" : "FAIL";
