@@ -916,7 +916,13 @@ function updateStateAfterEvaluation({ state, dayContent, evaluation }) {
   const previousStreak = state.tracker.streak || 0;
   const shieldEligible = previousStreak >= 7 && !state.streakShieldUsed;
   const shieldApplied = !strong && shieldEligible;
-  const nextStreak = strong ? previousStreak + 1 : shieldApplied ? previousStreak : 0;
+  
+  // Only increment streak if it's a new calendar day (not same day resubmission)
+  const isNewDay = !lastCompletionDate || lastCompletionDate !== todayIST;
+  const nextStreak = strong && isNewDay ? previousStreak + 1 : 
+                     !strong && shieldApplied ? previousStreak : 
+                     !strong ? 0 : 
+                     previousStreak; // Same day pass, keep current streak
   const totalSubmissions = (state.tracker.totalSubmissions || 0) + 1;
   const averageScore = Math.round(
     (((state.tracker.averageScore || 0) * (totalSubmissions - 1)) + evaluation.overallPercent) / totalSubmissions
