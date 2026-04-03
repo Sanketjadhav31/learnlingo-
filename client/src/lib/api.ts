@@ -219,3 +219,13 @@ export async function verifySession() {
   return data as { ok: true; user: { userId: string; name: string; email: string } };
 }
 
+export async function requestPasswordReset(email: string, newPassword: string) {
+  const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.reject?.message || "Password reset request failed");
+  return data as { ok: true; message: string };
+}

@@ -28,8 +28,8 @@ type ConfirmState = {
 
 export default function App() {
   const [authUser, setAuthUser] = useState<{ userId: string; name: string; email: string } | null>(null);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-  const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "reset">("login");
+  const [authForm, setAuthForm] = useState({ name: "", email: "", password: "", newPassword: "" });
   const [tracker, setTracker] = useState<Tracker | null>(null);
   const [day, setDay] = useState<DayContent | null>(null);
   const [dayProgress, setDayProgress] = useState<DayProgress | null>(null);
@@ -48,7 +48,7 @@ export default function App() {
     type: "warning",
     onConfirm: () => {},
   });
-  const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(null);
+  const [toast, setToast] = useState<{ type: ToastType; message: string; duration?: number } | null>(null);
 
   const header = useMemo(() => {
     const d = day?.dayNumber ?? tracker?.day ?? 1;
@@ -120,8 +120,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser?.userId]);
 
-  function showToast(type: ToastType, message: string) {
-    setToast({ type, message });
+  function showToast(type: ToastType, message: string, duration?: number) {
+    setToast({ type, message, duration });
   }
 
   function friendlyError(msg: string) {
@@ -269,12 +269,25 @@ export default function App() {
 
   async function onAuthSubmit() {
     try {
+      if (authMode === "reset") {
+        if (!authForm.newPassword || authForm.newPassword.length < 8) {
+          showToast("error", "New password must be at least 8 characters");
+          return;
+        }
+        const { requestPasswordReset } = await import("./lib/api");
+        await requestPasswordReset(authForm.email, authForm.newPassword);
+        showToast("success", "Password updated successfully! You can now login.");
+        setAuthMode("login");
+        setAuthForm({ name: "", email: authForm.email, password: authForm.newPassword, newPassword: "" });
+        return;
+      }
+      
       const res = authMode === "signup"
         ? await signup(authForm.name, authForm.email, authForm.password)
         : await login(authForm.email, authForm.password);
       setAuthToken(res.token);
       setAuthUser(res.user);
-      setAuthForm({ name: "", email: "", password: "" });
+      setAuthForm({ name: "", email: "", password: "", newPassword: "" });
       showToast("success", authMode === "signup" ? "Signup successful" : "Login successful");
     } catch (e: unknown) {
       showToast("error", e instanceof Error ? e.message : "Authentication failed");
@@ -297,18 +310,115 @@ export default function App() {
     }
     
     return (
-      <div className="h-screen bg-[#0a0e1a] text-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-xl border border-white/10 bg-black/30 p-6 space-y-4">
-          <div className="text-xl font-bold">{authMode === "signup" ? "Create account" : "Login"}</div>
-          {authMode === "signup" && (
-            <input value={authForm.name} onChange={(e) => setAuthForm((p) => ({ ...p, name: e.target.value }))} placeholder="Name" className="w-full rounded border border-white/20 bg-black/40 px-3 py-2" />
-          )}
-          <input value={authForm.email} onChange={(e) => setAuthForm((p) => ({ ...p, email: e.target.value }))} placeholder="Email" className="w-full rounded border border-white/20 bg-black/40 px-3 py-2" />
-          <input type="password" value={authForm.password} onChange={(e) => setAuthForm((p) => ({ ...p, password: e.target.value }))} placeholder="Password (min 8)" className="w-full rounded border border-white/20 bg-black/40 px-3 py-2" />
-          <button onClick={onAuthSubmit} className="w-full rounded bg-indigo-500 px-3 py-2 font-semibold" type="button">{authMode === "signup" ? "Signup" : "Login"}</button>
-          <button onClick={() => setAuthMode((m) => (m === "login" ? "signup" : "login"))} className="w-full text-sm text-indigo-300" type="button">
-            {authMode === "login" ? "Need an account? Signup" : "Already have an account? Login"}
-          </button>
+      <div className="h-screen bg-gradient-to-br from-[#0a0e1a] via-[#1a1f3a] to-[#0a0e1a] text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl border border-white/20 bg-gradient-to-br from-black/60 to-black/40 backdrop-blur-xl p-8 space-y-5 shadow-2xl">
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30">
+                <span className="text-3xl">🎓</span>
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              AI English Trainer
+            </h1>
+            <p className="text-sm text-white/60">
+              {authMode === "signup" 
+                ? "Create your account to start learning" 
+                : authMode === "reset"
+                ? "Enter your email and choose a new password"
+                : "Welcome back! Sign in to continue"}
+            </p>
+          </div>
+
+          {/* Form */}
+          <div className="space-y-4">
+            {authMode === "signup" && (
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-1.5">Full Name</label>
+                <input 
+                  value={authForm.name} 
+                  onChange={(e) => setAuthForm((p) => ({ ...p, name: e.target.value }))} 
+                  placeholder="Enter your name" 
+                  className="w-full rounded-lg border border-white/20 bg-black/40 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 transition-all" 
+                />
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1.5">Email Address</label>
+              <input 
+                type="email"
+                value={authForm.email} 
+                onChange={(e) => setAuthForm((p) => ({ ...p, email: e.target.value }))} 
+                placeholder="your@email.com" 
+                className="w-full rounded-lg border border-white/20 bg-black/40 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 transition-all" 
+              />
+            </div>
+            
+            {authMode === "reset" ? (
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-1.5">New Password</label>
+                <input 
+                  type="password" 
+                  value={authForm.newPassword} 
+                  onChange={(e) => setAuthForm((p) => ({ ...p, newPassword: e.target.value }))} 
+                  placeholder="Enter new password (min 8 characters)" 
+                  className="w-full rounded-lg border border-white/20 bg-black/40 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 transition-all" 
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-1.5">Password</label>
+                <input 
+                  type="password" 
+                  value={authForm.password} 
+                  onChange={(e) => setAuthForm((p) => ({ ...p, password: e.target.value }))} 
+                  placeholder="Minimum 8 characters" 
+                  className="w-full rounded-lg border border-white/20 bg-black/40 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 transition-all" 
+                />
+              </div>
+            )}
+
+            <button 
+              onClick={onAuthSubmit} 
+              className="w-full rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-3 font-semibold text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:from-indigo-600 hover:to-purple-700 transition-all duration-200" 
+              type="button"
+            >
+              {authMode === "signup" ? "Create Account" : authMode === "reset" ? "Update Password" : "Sign In"}
+            </button>
+          </div>
+
+          {/* Footer Links */}
+          <div className="space-y-2 pt-2 border-t border-white/10">
+            {authMode === "login" && (
+              <button 
+                onClick={() => {
+                  setAuthMode("reset");
+                  setAuthForm({ name: "", email: "", password: "", newPassword: "" });
+                }} 
+                className="w-full text-sm text-indigo-300 hover:text-indigo-200 transition-colors" 
+                type="button"
+              >
+                Forgot password?
+              </button>
+            )}
+            
+            <button 
+              onClick={() => {
+                setAuthMode((m) => m === "login" ? "signup" : "login");
+                setAuthForm({ name: "", email: "", password: "", newPassword: "" });
+              }} 
+              className="w-full text-sm text-white/60 hover:text-white/80 transition-colors" 
+              type="button"
+            >
+              {authMode === "login" 
+                ? "Don't have an account? Sign up" 
+                : authMode === "signup"
+                ? "Already have an account? Sign in"
+                : "Back to sign in"}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -463,7 +573,7 @@ export default function App() {
             type={toast.type}
             message={toast.message}
             onClose={() => setToast(null)}
-            duration={2000}
+            duration={toast.duration || 2000}
           />
         )}
         

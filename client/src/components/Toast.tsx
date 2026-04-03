@@ -38,7 +38,7 @@ export function Toast({ type, message, onClose, duration = 2000 }: ToastProps) {
         className={`rounded-lg border px-4 py-3 text-sm font-medium backdrop-blur-xl shadow-2xl flex items-center gap-3 min-w-[280px] max-w-md ${styles[type]}`}
       >
         <span className="text-lg flex-shrink-0">{icons[type]}</span>
-        <span className="flex-1">{message}</span>
+        <span className="flex-1 break-words">{message}</span>
         <button
           onClick={onClose}
           className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"

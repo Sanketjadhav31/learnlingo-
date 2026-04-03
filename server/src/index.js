@@ -240,6 +240,38 @@ async function main() {
     return res.json({ ok: true, user: { userId: String(user._id), name: user.name, email: user.email } });
   });
 
+  app.post("/api/auth/reset-password", async (req, res) => {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const newPassword = String(req.body?.newPassword || "");
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ ok: false, reject: { message: "Invalid email format." } });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ ok: false, reject: { message: "New password must be at least 8 characters." } });
+    }
+
+    const user = await UserAuth.findOne({ email });
+    if (!user) {
+      // For security, don't reveal if email exists or not
+      logger.info(`Password reset requested for non-existent email: ${email}`);
+      return res.status(404).json({ ok: false, reject: { message: "Email not found. Please check and try again." } });
+    }
+
+    // Update password directly
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = passwordHash;
+    await user.save();
+
+    logger.info(`Password reset successful for ${email}`);
+    
+    return res.json({ 
+      ok: true, 
+      message: "Password updated successfully. You can now login with your new password."
+    });
+  });
+
   app.get("/api/status", authRequired, async (req, res) => {
     const userId = req.userId;
 
