@@ -5,7 +5,7 @@ function cn(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-// Helper function to decode HTML entities
+// Helper function to decode HTML entities but preserve and highlight quoted text
 function decodeHtmlEntities(text: string): string {
   if (!text) return text;
   
@@ -14,19 +14,20 @@ function decodeHtmlEntities(text: string): string {
   return doc.documentElement.textContent || text;
 }
 
-// Helper function to format text with **bold** and `code` markdown
+// Helper function to format text with quotes, slashes, **bold** and `code` markdown
 function formatText(text: string): React.ReactNode {
   if (!text) return text;
   
   // First decode HTML entities
   const decoded = decodeHtmlEntities(text);
   
-  // Split by both **bold** and `code` patterns
-  const parts = decoded.split(/(\*\*.*?\*\*|`.*?`)/g);
+  // Split by patterns: 'single quotes', "double quotes", /slashes/, **bold**, `code`
+  const parts = decoded.split(/('(?:[^']|'')*?'|"(?:[^"]|"")*?"|\/[^\/\s]+\/|\*\*.*?\*\*|`.*?`)/g);
   
   return (
     <>
       {parts.map((part, i) => {
+        // Handle **bold**
         if (part.startsWith('**') && part.endsWith('**')) {
           const boldText = part.slice(2, -2);
           return (
@@ -35,12 +36,37 @@ function formatText(text: string): React.ReactNode {
             </span>
           );
         }
+        // Handle `code`
         if (part.startsWith('`') && part.endsWith('`')) {
           const codeText = part.slice(1, -1);
           return (
             <code key={i} className="font-mono text-cyan-200 bg-cyan-500/15 px-1.5 py-0.5 rounded text-sm border border-cyan-400/20">
               {codeText}
             </code>
+          );
+        }
+        // Handle 'single quotes' - highlight and bold
+        if (part.startsWith("'") && part.endsWith("'")) {
+          return (
+            <span key={i} className="font-semibold text-emerald-300 bg-emerald-500/15 px-1 rounded">
+              {part}
+            </span>
+          );
+        }
+        // Handle "double quotes" - highlight and bold
+        if (part.startsWith('"') && part.endsWith('"')) {
+          return (
+            <span key={i} className="font-semibold text-blue-300 bg-blue-500/15 px-1 rounded">
+              {part}
+            </span>
+          );
+        }
+        // Handle /slashes/ - highlight and bold
+        if (part.startsWith('/') && part.endsWith('/') && part.length > 2) {
+          return (
+            <span key={i} className="font-semibold text-purple-300 bg-purple-500/15 px-1 rounded font-mono">
+              {part}
+            </span>
           );
         }
         return <span key={i}>{part}</span>;
@@ -255,20 +281,20 @@ export function LessonPanel({
                       <div className="space-y-1">
                         {w.examples.slice(0, 3).map((ex, idx) => (
                           <div key={idx} className="text-sm text-white/70 italic">
-                            <span className="text-white/50">{idx + 1}.</span> "{decodeHtmlEntities(ex)}"
+                            <span className="text-white/50">{idx + 1}.</span> {formatText(ex)}
                           </div>
                         ))}
                       </div>
                     )}
                     {w.exampleSentence && isValidContent(w.exampleSentence) && (!w.examples || w.examples.length === 0) && (
                       <div className="text-sm text-white/70 italic">
-                        "{decodeHtmlEntities(w.exampleSentence)}"
+                        {formatText(w.exampleSentence)}
                       </div>
                     )}
                     {w.correct && isValidContent(w.correct) && (
                       <div className="flex gap-2 text-sm text-emerald-300">
                         <span>✓</span>
-                        <span>{decodeHtmlEntities(w.correct)}</span>
+                        <span>{formatText(w.correct)}</span>
                       </div>
                     )}
                   </div>
@@ -289,14 +315,14 @@ export function LessonPanel({
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2 text-sm text-red-300">
                         <span>❌</span>
-                        <span>{decodeHtmlEntities(x.wrong)}</span>
+                        <span>{formatText(x.wrong)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-emerald-300">
                         <span>✓</span>
-                        <span>{decodeHtmlEntities(x.correct)}</span>
+                        <span>{formatText(x.correct)}</span>
                       </div>
                       {(x as any).explanation && isValidContent((x as any).explanation) && (
-                        <div className="text-xs text-white/60 italic pl-6">{decodeHtmlEntities((x as any).explanation)}</div>
+                        <div className="text-xs text-white/60 italic pl-6">{formatText((x as any).explanation)}</div>
                       )}
                     </div>
                   </div>
@@ -317,25 +343,25 @@ export function LessonPanel({
                     <div className="text-xs text-white/50 italic">{decodeHtmlEntities(w.pos)}</div>
                   )}
                   {w.definition && isValidContent(w.definition) && (
-                    <div className="mt-2 text-sm text-white/85">{decodeHtmlEntities(w.definition)}</div>
+                    <div className="mt-2 text-sm text-white/85">{formatText(w.definition)}</div>
                   )}
                   {w.hindiMeaning && isValidContent(w.hindiMeaning) && (
                     <div className="mt-2 text-sm text-amber-300">
-                      <span className="font-medium">Hindi:</span> {decodeHtmlEntities(w.hindiMeaning)}
+                      <span className="font-medium">Hindi:</span> {formatText(w.hindiMeaning)}
                     </div>
                   )}
                   {w.examples && Array.isArray(w.examples) && w.examples.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {w.examples.slice(0, 3).map((ex, idx) => (
                         <div key={idx} className="text-sm text-emerald-300/80 italic">
-                          <span className="text-white/50">{idx + 1}.</span> {decodeHtmlEntities(ex)}
+                          <span className="text-white/50">{idx + 1}.</span> {formatText(ex)}
                         </div>
                       ))}
                     </div>
                   )}
                   {w.example && (!w.examples || w.examples.length === 0) && (
                     <div className="mt-2 text-sm text-emerald-300/80 italic">
-                      <span className="text-white/50">Example:</span> {decodeHtmlEntities(w.example)}
+                      <span className="text-white/50">Example:</span> {formatText(w.example)}
                     </div>
                   )}
                 </div>
@@ -351,7 +377,7 @@ export function LessonPanel({
               .map((s) => (
                 <div key={s.k} className="rounded-lg border border-white/10 bg-white/5 p-3 flex gap-3">
                   <span className="text-white/50 font-mono">{s.k}.</span>
-                  <span className="text-sm text-white/85">{decodeHtmlEntities(s.prompt)}</span>
+                  <span className="text-sm text-white/85">{formatText(s.prompt)}</span>
                 </div>
               ))}
             {(day.sentencePractice?.items || []).filter((s) => isValidContent(s.prompt)).length === 0 && (
@@ -367,7 +393,7 @@ export function LessonPanel({
               .map((q) => (
                 <div key={q.idx} className="rounded-lg border border-white/10 bg-white/5 p-3 flex gap-3">
                   <span className="text-white/50 font-mono">{q.idx}.</span>
-                  <span className="text-sm text-white/85">{decodeHtmlEntities(q.prompt)}</span>
+                  <span className="text-sm text-white/85">{formatText(q.prompt)}</span>
                 </div>
               ))}
             {(day.questions?.items || []).slice(0, qCount).filter((q) => isValidContent(q.prompt)).length === 0 && (
@@ -384,7 +410,7 @@ export function LessonPanel({
                 <div className="text-xs text-white/50 mb-3">📝 Transcript:</div>
                 <div className="text-sm text-white/85 leading-loose space-y-2">
                   {decodeHtmlEntities(day.listening.transcript).split('. ').filter(s => s.trim()).map((sentence, i) => (
-                    <p key={i}>{sentence.trim()}{i < decodeHtmlEntities(day.listening.transcript).split('. ').filter(s => s.trim()).length - 1 ? '.' : ''}</p>
+                    <p key={i}>{formatText(sentence.trim())}{i < decodeHtmlEntities(day.listening.transcript).split('. ').filter(s => s.trim()).length - 1 ? '.' : ''}</p>
                   ))}
                 </div>
               </div>
@@ -397,7 +423,7 @@ export function LessonPanel({
                   .map((q) => (
                     <div key={q.idx} className="rounded-lg border border-white/10 bg-white/5 p-3 flex gap-3">
                       <span className="text-white/50 font-mono">{q.idx}.</span>
-                      <span className="text-sm text-white/85">{decodeHtmlEntities(q.prompt)}</span>
+                      <span className="text-sm text-white/85">{formatText(q.prompt)}</span>
                     </div>
                   ))}
               </div>
