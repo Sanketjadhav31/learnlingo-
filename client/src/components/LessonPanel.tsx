@@ -7,21 +7,11 @@ function cn(...parts: Array<string | false | undefined>) {
 
 // Helper function to decode HTML entities
 function decodeHtmlEntities(text: string): string {
-  const entities: Record<string, string> = {
-    '&amp;': '&',
-    '&lt;': '<',
-    '&gt;': '>',
-    '&quot;': '"',
-    '&#34;': '"',
-    '&apos;': "'",
-    '&#39;': "'",
-    '&#x27;': "'",
-    '&#x2F;': '/',
-    '&#47;': '/',
-    '&nbsp;': ' ',
-  };
+  if (!text) return text;
   
-  return text.replace(/&[#\w]+;/g, (entity) => entities[entity] || entity);
+  // Use DOMParser for robust HTML entity decoding
+  const doc = new DOMParser().parseFromString(text, 'text/html');
+  return doc.documentElement.textContent || text;
 }
 
 // Helper function to format text with **bold** and `code` markdown
