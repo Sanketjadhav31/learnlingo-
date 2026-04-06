@@ -1,16 +1,38 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import type { DayContent, DayProgress } from "../lib/types";
 
 function cn(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
+// Helper function to decode HTML entities
+function decodeHtmlEntities(text: string): string {
+  const entities: Record<string, string> = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#34;': '"',
+    '&apos;': "'",
+    '&#39;': "'",
+    '&#x27;': "'",
+    '&#x2F;': '/',
+    '&#47;': '/',
+    '&nbsp;': ' ',
+  };
+  
+  return text.replace(/&[#\w]+;/g, (entity) => entities[entity] || entity);
+}
+
 // Helper function to format text with **bold** and `code` markdown
 function formatText(text: string): React.ReactNode {
   if (!text) return text;
   
+  // First decode HTML entities
+  const decoded = decodeHtmlEntities(text);
+  
   // Split by both **bold** and `code` patterns
-  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  const parts = decoded.split(/(\*\*.*?\*\*|`.*?`)/g);
   
   return (
     <>
@@ -58,11 +80,29 @@ export function LessonPanel({
   onToggleSectionDone: (sectionId: string, done: boolean) => void;
 }) {
   const [openSection, setOpenSection] = useState<string>("warmup");
+  const contentRef = useRef<HTMLDivElement>(null);
   const doneMap = dayProgress?.sectionsRead || {};
   const doneCount = dayProgress?.sectionsReadCount || 0;
   const progressPct = dayProgress?.readPercentage || 0;
   const qCount = day.submissionTemplate?.questionCount ?? 4;
   const sentenceCount = day.submissionTemplate?.sentenceCount ?? 20;
+
+  // Auto-mark section as done when scrolled to bottom
+  useEffect(() => {
+    const contentElement = contentRef.current;
+    if (!contentElement || doneMap[openSection]) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = contentElement;
+      // Check if scrolled to bottom (with 20px threshold)
+      if (scrollTop + clientHeight >= scrollHeight - 20) {
+        onToggleSectionDone(openSection, true);
+      }
+    };
+
+    contentElement.addEventListener('scroll', handleScroll);
+    return () => contentElement.removeEventListener('scroll', handleScroll);
+  }, [openSection, doneMap, onToggleSectionDone]);
 
   const isValidContent = (text: string) => {
     if (!text) return false;
@@ -190,7 +230,7 @@ export function LessonPanel({
         </div>
       </div>
 
-      <div className="rounded-lg sm:rounded-xl border border-white/10 bg-black/20 p-3 sm:p-4">
+      <div ref={contentRef} className="rounded-lg sm:rounded-xl border border-white/10 bg-black/20 p-3 sm:p-4 max-h-[60vh] overflow-y-auto">
         <div className="mb-2 sm:mb-3 flex items-center justify-between gap-2">
           <div className="text-xs sm:text-sm font-semibold text-white capitalize">{openSection}</div>
           <button
@@ -214,31 +254,31 @@ export function LessonPanel({
                 return (
                   <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
                     <div className="text-base font-semibold text-indigo-300">
-                      {w.word} <span className="text-sm text-white/60">/{cleanIpa}/</span>
+                      {decodeHtmlEntities(w.word)} <span className="text-sm text-white/60">/{cleanIpa}/</span>
                     </div>
                     {w.hindiMeaning && isValidContent(w.hindiMeaning) && (
                       <div className="text-sm text-amber-300">
-                        <span className="font-medium">Hindi:</span> {w.hindiMeaning}
+                        <span className="font-medium">Hindi:</span> {decodeHtmlEntities(w.hindiMeaning)}
                       </div>
                     )}
                     {w.examples && Array.isArray(w.examples) && w.examples.length > 0 && (
                       <div className="space-y-1">
                         {w.examples.slice(0, 3).map((ex, idx) => (
                           <div key={idx} className="text-sm text-white/70 italic">
-                            <span className="text-white/50">{idx + 1}.</span> "{ex}"
+                            <span className="text-white/50">{idx + 1}.</span> "{decodeHtmlEntities(ex)}"
                           </div>
                         ))}
                       </div>
                     )}
                     {w.exampleSentence && isValidContent(w.exampleSentence) && (!w.examples || w.examples.length === 0) && (
                       <div className="text-sm text-white/70 italic">
-                        "{w.exampleSentence}"
+                        "{decodeHtmlEntities(w.exampleSentence)}"
                       </div>
                     )}
                     {w.correct && isValidContent(w.correct) && (
                       <div className="flex gap-2 text-sm text-emerald-300">
                         <span>✓</span>
-                        <span>{w.correct}</span>
+                        <span>{decodeHtmlEntities(w.correct)}</span>
                       </div>
                     )}
                   </div>
@@ -259,14 +299,14 @@ export function LessonPanel({
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2 text-sm text-red-300">
                         <span>❌</span>
-                        <span>{x.wrong}</span>
+                        <span>{decodeHtmlEntities(x.wrong)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-emerald-300">
                         <span>✓</span>
-                        <span>{x.correct}</span>
+                        <span>{decodeHtmlEntities(x.correct)}</span>
                       </div>
                       {(x as any).explanation && isValidContent((x as any).explanation) && (
-                        <div className="text-xs text-white/60 italic pl-6">{(x as any).explanation}</div>
+                        <div className="text-xs text-white/60 italic pl-6">{decodeHtmlEntities((x as any).explanation)}</div>
                       )}
                     </div>
                   </div>
@@ -282,30 +322,30 @@ export function LessonPanel({
               .filter((w) => isValidContent(w.word) && (isValidContent(w.definition) || (w.example && isValidContent(w.example))))
               .map((w, i) => (
                 <div key={i} className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <div className="text-base font-semibold text-indigo-300">{w.word}</div>
+                  <div className="text-base font-semibold text-indigo-300">{decodeHtmlEntities(w.word)}</div>
                   {w.pos && isValidContent(w.pos) && (
-                    <div className="text-xs text-white/50 italic">{w.pos}</div>
+                    <div className="text-xs text-white/50 italic">{decodeHtmlEntities(w.pos)}</div>
                   )}
                   {w.definition && isValidContent(w.definition) && (
-                    <div className="mt-2 text-sm text-white/85">{w.definition}</div>
+                    <div className="mt-2 text-sm text-white/85">{decodeHtmlEntities(w.definition)}</div>
                   )}
                   {w.hindiMeaning && isValidContent(w.hindiMeaning) && (
                     <div className="mt-2 text-sm text-amber-300">
-                      <span className="font-medium">Hindi:</span> {w.hindiMeaning}
+                      <span className="font-medium">Hindi:</span> {decodeHtmlEntities(w.hindiMeaning)}
                     </div>
                   )}
                   {w.examples && Array.isArray(w.examples) && w.examples.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {w.examples.slice(0, 3).map((ex, idx) => (
                         <div key={idx} className="text-sm text-emerald-300/80 italic">
-                          <span className="text-white/50">{idx + 1}.</span> {ex}
+                          <span className="text-white/50">{idx + 1}.</span> {decodeHtmlEntities(ex)}
                         </div>
                       ))}
                     </div>
                   )}
                   {w.example && (!w.examples || w.examples.length === 0) && (
                     <div className="mt-2 text-sm text-emerald-300/80 italic">
-                      <span className="text-white/50">Example:</span> {w.example}
+                      <span className="text-white/50">Example:</span> {decodeHtmlEntities(w.example)}
                     </div>
                   )}
                 </div>
@@ -321,7 +361,7 @@ export function LessonPanel({
               .map((s) => (
                 <div key={s.k} className="rounded-lg border border-white/10 bg-white/5 p-3 flex gap-3">
                   <span className="text-white/50 font-mono">{s.k}.</span>
-                  <span className="text-sm text-white/85">{s.prompt}</span>
+                  <span className="text-sm text-white/85">{decodeHtmlEntities(s.prompt)}</span>
                 </div>
               ))}
             {(day.sentencePractice?.items || []).filter((s) => isValidContent(s.prompt)).length === 0 && (
@@ -337,7 +377,7 @@ export function LessonPanel({
               .map((q) => (
                 <div key={q.idx} className="rounded-lg border border-white/10 bg-white/5 p-3 flex gap-3">
                   <span className="text-white/50 font-mono">{q.idx}.</span>
-                  <span className="text-sm text-white/85">{q.prompt}</span>
+                  <span className="text-sm text-white/85">{decodeHtmlEntities(q.prompt)}</span>
                 </div>
               ))}
             {(day.questions?.items || []).slice(0, qCount).filter((q) => isValidContent(q.prompt)).length === 0 && (
@@ -347,14 +387,14 @@ export function LessonPanel({
         ) : openSection === "listening" ? (
           <div className="space-y-4">
             {day.listening?.title && isValidContent(day.listening.title) && (
-              <div className="text-sm font-medium text-indigo-300">{day.listening.title}</div>
+              <div className="text-sm font-medium text-indigo-300">{decodeHtmlEntities(day.listening.title)}</div>
             )}
             {day.listening?.transcript && isValidContent(day.listening.transcript) && (
               <div className="rounded-lg border border-white/10 bg-white/5 p-4">
                 <div className="text-xs text-white/50 mb-3">📝 Transcript:</div>
                 <div className="text-sm text-white/85 leading-loose space-y-2">
-                  {day.listening.transcript.split('. ').filter(s => s.trim()).map((sentence, i) => (
-                    <p key={i}>{sentence.trim()}{i < day.listening.transcript.split('. ').filter(s => s.trim()).length - 1 ? '.' : ''}</p>
+                  {decodeHtmlEntities(day.listening.transcript).split('. ').filter(s => s.trim()).map((sentence, i) => (
+                    <p key={i}>{sentence.trim()}{i < decodeHtmlEntities(day.listening.transcript).split('. ').filter(s => s.trim()).length - 1 ? '.' : ''}</p>
                   ))}
                 </div>
               </div>
@@ -367,7 +407,7 @@ export function LessonPanel({
                   .map((q) => (
                     <div key={q.idx} className="rounded-lg border border-white/10 bg-white/5 p-3 flex gap-3">
                       <span className="text-white/50 font-mono">{q.idx}.</span>
-                      <span className="text-sm text-white/85">{q.prompt}</span>
+                      <span className="text-sm text-white/85">{decodeHtmlEntities(q.prompt)}</span>
                     </div>
                   ))}
               </div>
