@@ -60,6 +60,18 @@ const UserStateSchema = new mongoose.Schema(
     
     // NEW: Track last day completion date (for day advancement logic)
     lastDayCompletionDate: { type: String, default: null },
+    
+    // NEW: Interview Practice Module - 8 questions per day
+    interviewPractice: { type: mongoose.Schema.Types.Mixed, default: {} },
+    // Structure: { [dayNumber]: { questions: [...], generatedAt: ISO, usedTypes: [...] } }
+    
+    // NEW: Tech Quiz Module - 20 questions per subject per day
+    techQuiz: { type: mongoose.Schema.Types.Mixed, default: {} },
+    // Structure: { [dayNumber]: { [subject]: { questions: [...], generatedAt: ISO, usedTopics: [...] } } }
+    
+    // NEW: 7-day history tracking for uniqueness
+    practiceHistory: { type: mongoose.Schema.Types.Mixed, default: { interview: [], techQuiz: {} } },
+    // Structure: { interview: [{ day, types, questionTexts }], techQuiz: { [subject]: [{ day, topics, questionIds }] } }
   },
   { timestamps: true }
 );

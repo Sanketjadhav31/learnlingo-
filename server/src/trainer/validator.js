@@ -155,18 +155,13 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
   }
 
   const writingTask = blockBetween("writing", "speaking");
-  const speakingTask = blockBetween("speaking", "conversation");
+  const speakingTask = "Completed"; // Speaking is now read-aloud practice, not written
   if (countWords(writingTask) < 40) {
     return { ok: false, reason: "Writing task must contain at least 60 words.", details: [] };
   }
-  if (countWords(speakingTask) < 20) {
-    return { ok: false, reason: "Speaking task must contain at least 40 words.", details: [] };
-  }
+  // Skip speaking validation - it's now a read-aloud exercise
   if (hasMostlyCopiedPrompt(writingTask, dayContent.writingTask?.prompt)) {
     return { ok: false, reason: "Writing task looks copied from prompt. Please write your own answer.", details: [] };
-  }
-  if (hasMostlyCopiedPrompt(speakingTask, dayContent.speakingTask?.prompt)) {
-    return { ok: false, reason: "Speaking task looks copied from prompt. Please write your own answer.", details: [] };
   }
 
   const sentenceStart = labelIndices.sentences + 1;
@@ -181,18 +176,20 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
       details: sentenceBlock.extraNonEmptyLines.slice(0, 5).map((x) => x.line),
     };
   }
-  for (let n = 1; n <= sentenceCount; n++) {
+  // Only validate first 10 sentences (fill-in-blanks), items 11-20 are example sentences
+  const fillBlankCount = 10;
+  for (let n = 1; n <= fillBlankCount; n++) {
     const v = sentenceBlock.itemsByNum.get(n);
     if (v === undefined || !String(v).trim() || String(v).trim() === "-") {
-      return { ok: false, reason: `Sentence Practice sentence ${n} is empty/invalid.`, details: [] };
+      return { ok: false, reason: `Sentence Practice fill-in-blank ${n} is empty/invalid.`, details: [] };
     }
-    if (countWords(v) < 2) {
-      return { ok: false, reason: `Sentence Practice sentence ${n} must be at least 4 words.`, details: [] };
+    if (countWords(v) < 1) {
+      return { ok: false, reason: `Sentence Practice fill-in-blank ${n} must be at least 1 word.`, details: [] };
     }
   }
-  const sentenceValues = Array.from({ length: sentenceCount }, (_, i) => sentenceBlock.itemsByNum.get(i + 1));
+  const sentenceValues = Array.from({ length: fillBlankCount }, (_, i) => sentenceBlock.itemsByNum.get(i + 1));
   if (uniqueRatio(sentenceValues) < 0.6) {
-    return { ok: false, reason: "Too many repeated sentences. Please provide unique answers.", details: [] };
+    return { ok: false, reason: "Too many repeated answers. Please provide unique answers.", details: [] };
   }
 
   const hindiStart = labelIndices.hindiTranslation + 1;
@@ -314,7 +311,7 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
       k: i + 1,
       text: conversationBlock.itemsByNum.get(i + 1),
     })),
-    sentencePractice: Array.from({ length: sentenceCount }, (_, i) => ({
+    sentencePractice: Array.from({ length: 10 }, (_, i) => ({
       k: i + 1,
       text: sentenceBlock.itemsByNum.get(i + 1),
     })),

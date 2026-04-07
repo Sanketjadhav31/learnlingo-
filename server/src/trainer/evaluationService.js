@@ -632,7 +632,9 @@ async function evaluateSubmissionGemini({ dayContent, submissionParsed, state })
       },
       sentencePracticePrompts: dayContent.sentencePractice.items.map((x) => ({
         k: x.k,
-        prompt: x.prompt,
+        prompt: x.sentence || x.prompt,
+        type: x.type,
+        blank: x.blank,
       })),
       questions: dayContent.questions.items,
       listeningQuestions: dayContent.listening.questions,

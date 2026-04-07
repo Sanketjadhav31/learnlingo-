@@ -80,8 +80,14 @@ function buildDayResponseSchema({ dayType, sentenceCount, questionCount, vocabQu
   );
 
   const sentenceItem = schemaObj(
-    { k: schemaInt(), prompt: schemaStr() },
-    ["k", "prompt"]
+    { 
+      k: schemaInt(), 
+      type: schemaStr(), 
+      sentence: schemaStr(),
+      blank: schemaStr(),
+      difficulty: schemaStr()
+    },
+    ["k", "type", "sentence"]
   );
 
   const hindiItem = schemaObj(
@@ -138,7 +144,7 @@ function buildDayResponseSchema({ dayType, sentenceCount, questionCount, vocabQu
         },
         ["title", "transcript", "questions"]
       ),
-      speakingTask: schemaObj({ prompt: schemaStr() }, ["prompt"]),
+      speakingTask: schemaObj({ text: schemaStr() }, ["text"]),
       writingTask: schemaObj(
         { prompt: schemaStr(), requiredIdiom: schemaStr(), requiredPhrasal: schemaStr() },
         ["prompt", "requiredIdiom", "requiredPhrasal"]
@@ -396,7 +402,7 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
 
 
       const validSentences = normalized.sentencePractice.items.filter(
-        s => s.prompt && s.prompt.length > 10 && !s.prompt.toLowerCase().includes("write sentence")
+        s => (s.sentence || s.prompt) && (s.sentence || s.prompt).length > 10
       );
 
       

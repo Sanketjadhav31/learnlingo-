@@ -4,6 +4,8 @@ import { LessonPanel } from "./components/LessonPanel";
 import { SubmissionEditor } from "./components/SubmissionEditor";
 import { EvaluationPanel } from "./components/EvaluationPanel";
 import { HistoryPanel } from "./components/HistoryPanel";
+import { InterviewPanel } from "./components/InterviewPanel";
+import { TechQuizPanel } from "./components/TechQuizPanel";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { Toast, type ToastType } from "./components/Toast";
 import { LoadingSpinner } from "./components/LoadingSpinner";
@@ -256,7 +258,7 @@ export default function App() {
     });
   }
 
-  const [activeTab, setActiveTab] = useState<"progress" | "lesson" | "submission" | "evaluation" | "history">("progress");
+  const [activeTab, setActiveTab] = useState<"progress" | "lesson" | "submission" | "evaluation" | "history" | "interview" | "techquiz">("progress");
 
   async function onToggleSectionDone(sectionId: string, done: boolean) {
     try {
@@ -425,9 +427,9 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1629] to-[#0a0e1a] text-white flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#1a1a1a] text-white flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="border-b border-white/10 bg-gradient-to-r from-black/40 via-black/30 to-black/40 backdrop-blur-xl shrink-0">
+      <div className="border-b border-[#3e3e3e] bg-[#282828] backdrop-blur-xl shrink-0">
         <div className="mx-auto max-w-7xl px-2 sm:px-4 py-2">
           <div className="flex flex-col gap-2">
             {/* Top row - Logo, Title, User */}
@@ -501,7 +503,7 @@ export default function App() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-white/10 bg-black/20 backdrop-blur-sm shrink-0 overflow-x-auto">
+      <div className="border-b border-[#3e3e3e] bg-[#282828] backdrop-blur-sm shrink-0 overflow-x-auto">
         <div className="mx-auto max-w-7xl px-2 sm:px-4">
           <div className="flex gap-0.5 sm:gap-1 min-w-max">
             {[
@@ -510,14 +512,16 @@ export default function App() {
               { id: "submission", icon: "✍️", label: "Submit Work", shortLabel: "Submit", color: "from-purple-500 to-pink-500" },
               { id: "evaluation", icon: "📈", label: "Evaluation", shortLabel: "Eval", color: "from-emerald-500 to-teal-500" },
               { id: "history", icon: "📜", label: "History", color: "from-amber-500 to-orange-500" },
+              { id: "interview", icon: "🎤", label: "Interview", color: "from-purple-500 to-pink-500" },
+              { id: "techquiz", icon: "💻", label: "Tech Quiz", shortLabel: "Quiz", color: "from-green-500 to-emerald-500" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`relative px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
+                className={`relative px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap border border-transparent ${
                   activeTab === tab.id
-                    ? "text-white"
-                    : "text-white/60 hover:text-white/80"
+                    ? "text-[#ffa116] border-b-2 border-[#ffa116] bg-[#3a3a3a]"
+                    : "text-[#d4d4d4] hover:text-white hover:bg-[#3a3a3a]"
                 }`}
                 type="button"
               >
@@ -663,6 +667,26 @@ export default function App() {
                 <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-3 sm:p-6 shadow-2xl h-full flex flex-col">
                   <div className="flex-1 overflow-auto pr-1 sm:pr-2 custom-scrollbar">
                     <HistoryPanel />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "interview" && (
+              <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-3 sm:p-6 shadow-2xl h-full flex flex-col">
+                  <div className="flex-1 overflow-auto pr-1 sm:pr-2 custom-scrollbar">
+                    <InterviewPanel currentDay={day?.dayNumber || 1} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "techquiz" && (
+              <div className="h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl p-3 sm:p-6 shadow-2xl h-full flex flex-col">
+                  <div className="flex-1 overflow-auto pr-1 sm:pr-2 custom-scrollbar">
+                    <TechQuizPanel currentDay={day?.dayNumber || 1} />
                   </div>
                 </div>
               </div>

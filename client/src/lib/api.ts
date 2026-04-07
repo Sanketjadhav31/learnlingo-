@@ -229,3 +229,88 @@ export async function requestPasswordReset(email: string, newPassword: string) {
   if (!res.ok) throw new Error(data?.reject?.message || "Password reset request failed");
   return data as { ok: true; message: string };
 }
+
+// ============================================================================
+// INTERVIEW PRACTICE & TECH QUIZ API
+// ============================================================================
+
+import type { InterviewPracticeData, TechQuizData, TechSubject } from "./types";
+
+export async function fetchInterviewQuestions(dayNumber: number) {
+  console.log(`📡 [API] fetchInterviewQuestions for day ${dayNumber}`);
+  const url = `${API_BASE_URL}/api/interview/${dayNumber}`;
+  
+  const res = await fetch(url, { headers: authHeaders() });
+  console.log(`📡 [API] Response status: ${res.status}`);
+  
+  if (!res.ok) {
+    const data = await res.json();
+    console.error(`❌ [API] fetchInterviewQuestions failed:`, data?.reject?.message);
+    throw new Error(data?.reject?.message || "Failed to load interview questions");
+  }
+  
+  const data = await res.json();
+  console.log(`✓ [API] fetchInterviewQuestions success - ${data.data?.questions?.length || 0} questions`);
+  return data as { ok: true; data: InterviewPracticeData };
+}
+
+export async function fetchTechQuiz(dayNumber: number, subject: TechSubject) {
+  console.log(`📡 [API] fetchTechQuiz for ${subject} on day ${dayNumber}`);
+  const url = `${API_BASE_URL}/api/techquiz/${dayNumber}/${encodeURIComponent(subject)}`;
+  
+  const res = await fetch(url, { headers: authHeaders() });
+  console.log(`📡 [API] Response status: ${res.status}`);
+  
+  if (!res.ok) {
+    const data = await res.json();
+    console.error(`❌ [API] fetchTechQuiz failed:`, data?.reject?.message);
+    throw new Error(data?.reject?.message || "Failed to load tech quiz");
+  }
+  
+  const data = await res.json();
+  console.log(`✓ [API] fetchTechQuiz success - ${data.data?.questions?.length || 0} questions`);
+  return data as { ok: true; data: TechQuizData };
+}
+
+export async function fetchTechSubjects() {
+  console.log(`📡 [API] fetchTechSubjects`);
+  const url = `${API_BASE_URL}/api/techquiz/subjects`;
+  
+  const res = await fetch(url, { headers: authHeaders() });
+  
+  if (!res.ok) {
+    throw new Error("Failed to load subjects");
+  }
+  
+  const data = await res.json();
+  console.log(`✓ [API] fetchTechSubjects success - ${data.subjects?.length || 0} subjects`);
+  return data as { ok: true; subjects: TechSubject[] };
+}
+
+export async function generateAllTechQuizzes(dayNumber: number) {
+  console.log(`📡 [API] generateAllTechQuizzes for day ${dayNumber}`);
+  const url = `${API_BASE_URL}/api/techquiz/${dayNumber}/generate-all`;
+  
+  const res = await fetch(url, { 
+    method: 'POST',
+    headers: authHeaders() 
+  });
+  console.log(`📡 [API] Response status: ${res.status}`);
+  
+  if (!res.ok) {
+    const data = await res.json();
+    console.error(`❌ [API] generateAllTechQuizzes failed:`, data?.reject?.message);
+    throw new Error(data?.reject?.message || "Failed to generate all tech quizzes");
+  }
+  
+  const data = await res.json();
+  console.log(`✓ [API] generateAllTechQuizzes success - ${data.generated}/${data.total} subjects, ${data.totalQuestions || 0} total questions`);
+  return data as { 
+    ok: true; 
+    data: Record<string, TechQuizData>;
+    errors?: Array<{ subject: string; error: string }>;
+    generated: number;
+    total: number;
+    totalQuestions?: number;
+  };
+}

@@ -66,10 +66,10 @@ export type DayContent = {
     transcript: string;
     questions: { idx: number; prompt: string }[];
   };
-  speakingTask: { prompt: string };
+  speakingTask: { text: string };
   writingTask: { prompt: string; requiredIdiom: string; requiredPhrasal: string };
   conversationTask: { items: { k: number; hindiSentence: string }[] };
-  sentencePractice: { items: { k: number; prompt: string }[] };
+  sentencePractice: { items: { k: number; type: string; sentence: string; blank?: string; difficulty?: string }[] };
   hindiTranslation: { items: { k: number; hindiSentence: string }[] };
   questions: { items: { idx: number; prompt: string }[] };
   vocabQuiz?: { items: { idx: number; prompt: string }[] };
@@ -199,3 +199,68 @@ export type DayProgress = {
   requiredSections: number;
 };
 
+
+// ============================================================================
+// INTERVIEW PRACTICE & TECH QUIZ TYPES
+// ============================================================================
+
+export type InterviewQuestionType = 
+  | "Introduction"
+  | "Strength"
+  | "Weakness"
+  | "Project"
+  | "Teamwork"
+  | "Situational"
+  | "Career Goal"
+  | "Achievement"
+  | "Leadership"
+  | "Conflict";
+
+export type InterviewQuestion = {
+  questionId: string;
+  type: InterviewQuestionType;
+  question: string;
+  modelAnswer: string;
+  keyPoints: [string, string, string, string]; // Exactly 4
+  deliveryTip: string;
+};
+
+export type InterviewPracticeData = {
+  questions: InterviewQuestion[];
+  generatedAt: string;
+  dayNumber: number;
+  usedTypes: InterviewQuestionType[];
+};
+
+export type TechQuizDifficulty = "Easy" | "Medium" | "Hard";
+
+export type TechQuizQuestion = {
+  questionId: string;
+  difficulty: TechQuizDifficulty;
+  question: string;
+  answer: string;
+  codeSnippet: string | null;
+  explanation: string;
+  language: string;
+  topicTags: string[];
+};
+
+export type TechQuizData = {
+  questions: TechQuizQuestion[];
+  generatedAt: string;
+  dayNumber: number;
+  subject: string;
+  usedTopics: string[];
+};
+
+export type TechSubject = 
+  | "Python"
+  | "NumPy"
+  | "Pandas"
+  | "DSA"
+  | "React"
+  | "Java"
+  | "JavaScript"
+  | "SQL"
+  | "Node.js"
+  | "Express.js";

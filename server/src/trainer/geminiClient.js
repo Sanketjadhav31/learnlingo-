@@ -71,8 +71,8 @@ function uniq(arr) {
 
 function getGeminiModelCandidates() {
   const envName = normalizeGeminiModelName(process.env.GEMINI_MODEL);
-  // Preferred order requested: 2.5 flash -> 1.5 flash -> 1.5 pro
-  return uniq([envName, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"]);
+  // Default models that work - don't specify -latest or specific versions
+  return uniq([envName, "gemini-1.5-flash", "gemini-1.5-pro"]);
 }
 
 function isModelNotFoundOrUnsupported(errorMessage) {
@@ -94,16 +94,42 @@ function extractLikelyJson(raw) {
   const text = String(raw || "").trim();
   if (!text) throw new Error("Gemini returned empty response.");
 
+  // First try: extract from code fences
   const fenced = text.match(/```json\s*([\s\S]*?)\s*```/i) || text.match(/```\s*([\s\S]*?)\s*```/i);
-  if (fenced?.[1]) return fenced[1].trim();
+  if (fenced?.[1]) {
+    const extracted = fenced[1].trim();
+    try {
+      JSON.parse(extracted);
+      return extracted;
+    } catch (e) {
+      // Continue to other methods
+    }
+  }
 
-  if (text.startsWith("{") || text.startsWith("[")) return text;
+  // Second try: if starts with { or [, try to parse as-is
+  if (text.startsWith("{") || text.startsWith("[")) {
+    try {
+      JSON.parse(text);
+      return text;
+    } catch (e) {
+      // Continue to bracket extraction
+    }
+  }
 
+  // Third try: extract from first { to last }
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    return text.slice(firstBrace, lastBrace + 1);
+    const extracted = text.slice(firstBrace, lastBrace + 1);
+    try {
+      JSON.parse(extracted);
+      return extracted;
+    } catch (e) {
+      // If still fails, throw with helpful message
+      throw new Error(`Gemini returned malformed JSON. First 100 chars: ${extracted.substring(0, 100)}`);
+    }
   }
+  
   throw new Error("Gemini returned no JSON object.");
 }
 

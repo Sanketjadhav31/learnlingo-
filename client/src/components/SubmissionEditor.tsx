@@ -44,7 +44,7 @@ function parseSubmission(text: string, day: DayContent): SubmissionData {
   const data: SubmissionData = {
     writing: "",
     speaking: "",
-    conversation: [],
+    conversation: Array(template.conversationMinTurns).fill(""),
     sentences: Array(template.sentenceCount).fill(""),
     hindiTranslation: Array(20).fill(""),
     questions: Array(template.questionCount).fill(""),
@@ -125,7 +125,7 @@ function buildSubmissionText(data: SubmissionData, day: DayContent): string {
 
   let text = `${header}\n\n`;
   text += `1. Writing Task:\n${data.writing || ""}\n\n`;
-  text += `2. Speaking Task:\n${data.speaking || ""}\n\n`;
+  text += `2. Speaking Task:\nCompleted (read aloud practice)\n\n`;
   
   // Conversation - only include non-empty lines
   const conversationLines = data.conversation
@@ -133,8 +133,9 @@ function buildSubmissionText(data: SubmissionData, day: DayContent): string {
     .filter(c => c);
   text += `3. Conversation Practice:\n${conversationLines.join("\n")}\n\n`;
   
-  // Sentences - only include non-empty ones
+  // Sentences - only include fill-in-blank answers (items 1-10), skip example sentences (11-20)
   const sentenceLines = data.sentences
+    .slice(0, 10) // Only first 10 are fill-in-blanks that need answers
     .map((s, i) => s && s.trim() ? `${i + 1}. ${s}` : "")
     .filter(s => s);
   text += `4. Sentence Practice:\n${sentenceLines.join("\n")}\n\n`;
@@ -219,7 +220,7 @@ export function SubmissionEditor(props: {
     const emptyData: SubmissionData = {
       writing: "",
       speaking: "",
-      conversation: [],
+      conversation: Array(props.day.submissionTemplate.conversationMinTurns).fill(""),
       sentences: Array(props.day.submissionTemplate.sentenceCount).fill(""),
       hindiTranslation: Array(20).fill(""),
       questions: Array(props.day.submissionTemplate.questionCount).fill(""),
@@ -252,9 +253,6 @@ export function SubmissionEditor(props: {
   }, [props.value, mode, props.day, autoSaveDraft]);
 
   const template = props.day.submissionTemplate;
-  const conversationTurns = Array.from({ length: template.conversationMinTurns }, (_, i) => 
-    i % 2 === 0 ? "A" : "B"
-  );
 
   const updateFormData = (field: keyof SubmissionData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -272,7 +270,7 @@ export function SubmissionEditor(props: {
     if (field === 'writing' || field === 'speaking') {
       newData[field] = '';
     } else if (field === 'conversation') {
-      newData[field] = [];
+      newData[field] = Array(props.day.submissionTemplate.conversationMinTurns).fill('');
     } else if (field === 'sentences') {
       newData[field] = Array(props.day.submissionTemplate.sentenceCount).fill('');
     } else if (field === 'hindiTranslation') {
@@ -299,7 +297,7 @@ export function SubmissionEditor(props: {
     const emptyData: SubmissionData = {
       writing: "",
       speaking: "",
-      conversation: [],
+      conversation: Array(props.day.submissionTemplate.conversationMinTurns).fill(""),
       sentences: Array(props.day.submissionTemplate.sentenceCount).fill(""),
       hindiTranslation: Array(20).fill(""),
       questions: Array(props.day.submissionTemplate.questionCount).fill(""),
@@ -466,20 +464,22 @@ export function SubmissionEditor(props: {
           )}
           
           {activeSection === "speaking" && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-white">Speaking Task</div>
-                <ResetButton onReset={() => resetField("speaking")} label="Reset" className="text-[10px] px-2 py-1" />
+                <div className="text-sm font-semibold text-white">Speaking Practice</div>
               </div>
-              <div className="text-sm text-white/70 bg-black/20 p-3 rounded border border-white/5 max-h-32 overflow-y-auto leading-relaxed">
-                {formatPromptText(props.day.speakingTask.prompt)}
+              <div className="text-xs text-white/60 bg-indigo-500/10 border border-indigo-400/30 rounded p-2">
+                🎤 Read this text aloud to practice your speaking and pronunciation. Focus on clear pronunciation and natural rhythm.
               </div>
-              <textarea
-                value={formData.speaking}
-                onChange={(e) => updateFormData("speaking", e.target.value)}
-                className="w-full h-64 resize-none rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-white/90 outline-none focus:border-white/20"
-                placeholder="Describe what you said or plan to say..."
-              />
+              <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-4">
+                <div className="text-xs text-emerald-300 font-semibold mb-3">📖 Practice Text:</div>
+                <div className="text-sm text-white/90 leading-loose whitespace-pre-wrap">
+                  {formatPromptText(props.day.speakingTask.text || (props.day.speakingTask as any).prompt || "")}
+                </div>
+              </div>
+              <div className="text-xs text-white/50 italic">
+                💡 Tip: Read this passage multiple times. Record yourself and listen back to improve your pronunciation and fluency.
+              </div>
             </div>
           )}
           
@@ -519,24 +519,66 @@ export function SubmissionEditor(props: {
                 <ResetButton onReset={() => resetField("sentences")} label="Reset" className="text-[10px] px-2 py-1" />
               </div>
               <div className="text-xs text-white/60 bg-indigo-500/10 border border-indigo-400/30 rounded p-2 mb-3">
-                ✍️ Write complete, grammatically correct sentences based on each prompt. Use today's grammar topic in your sentences.
+                ✍️ Fill in the blanks (1-10), then read and understand the example sentences (11-20) showing correct grammar usage.
               </div>
               {props.day.sentencePractice.items.map((item, i) => {
-                // Clean up the prompt - if it's too long or contains instructions, simplify it
-                let displayPrompt = item.prompt;
-                if (displayPrompt.length > 150 || displayPrompt.includes('**') || displayPrompt.includes('Challenge yourself')) {
-                  displayPrompt = `Write a sentence using today's grammar`;
+                // Handle both old and new format
+                const isFillBlank = item.type === "fill_blank";
+                const hasNewFormat = item.sentence && item.type;
+                
+                // Fallback for old format
+                if (!hasNewFormat && (item as any).prompt) {
+                  return (
+                    <div key={i} className="space-y-1">
+                      <div className="text-xs text-white/60">{item.k}. {(item as any).prompt}</div>
+                      <input
+                        value={formData.sentences[i] || ""}
+                        onChange={(e) => updateArrayItem("sentences", i, e.target.value)}
+                        className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white/90 outline-none focus:border-white/20"
+                        placeholder="Write your sentence here..."
+                      />
+                    </div>
+                  );
                 }
+                
+                const difficultyColor = 
+                  item.difficulty === "easy" ? "text-green-300" :
+                  item.difficulty === "hard" ? "text-red-300" : "text-yellow-300";
                 
                 return (
                   <div key={i} className="space-y-1">
-                    <div className="text-xs text-white/60">{item.k}. {displayPrompt}</div>
-                    <input
-                      value={formData.sentences[i] || ""}
-                      onChange={(e) => updateArrayItem("sentences", i, e.target.value)}
-                      className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white/90 outline-none focus:border-white/20"
-                      placeholder="Write a complete sentence here..."
-                    />
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs text-white/60">{item.k}.</div>
+                      {isFillBlank ? (
+                        <div className="flex-1 text-sm text-white/85 bg-purple-500/10 border border-purple-400/20 rounded px-2 py-1.5">
+                          {item.sentence.split('_____').map((part, idx, arr) => (
+                            <span key={idx}>
+                              {part}
+                              {idx < arr.length - 1 && (
+                                <span className="inline-block min-w-[100px] border-b-2 border-purple-400 mx-1">
+                                  <input
+                                    value={formData.sentences[i] || ""}
+                                    onChange={(e) => updateArrayItem("sentences", i, e.target.value)}
+                                    className="w-full bg-transparent text-center outline-none text-purple-200 font-semibold"
+                                    placeholder="?"
+                                  />
+                                </span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex-1 rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2">
+                          <div className="text-xs text-blue-300 mb-1">📖 Example Sentence:</div>
+                          <div className="text-sm text-white/90 leading-relaxed">{item.sentence}</div>
+                        </div>
+                      )}
+                      {item.difficulty && (
+                        <span className={`text-[10px] ${difficultyColor} flex-shrink-0`}>
+                          {item.difficulty}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

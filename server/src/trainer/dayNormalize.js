@@ -434,33 +434,41 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
   const sentencePractice = Array.from({ length: sentenceCount }, (_, i) => {
     const x = rawSentenceItems[i];
     let kCandidate = i + 1;
-    let prompt = "";
+    let type = "complete";
+    let sentence = "";
+    let blank = "";
+    let difficulty = "medium";
 
     if (typeof x === "string") {
-      prompt = x;
+      sentence = x;
     } else if (x && typeof x === "object") {
       if (typeof x.k === "number") {
         kCandidate = x.k >= 1 ? x.k : i + 1;
       }
-      prompt = asString(
+      type = asString(x.type || (i < 10 ? "fill_blank" : "complete"));
+      sentence = asString(
+        x.sentence ||
         x.prompt ||
         x.instruction ||
         x.english ||
         x.blankedEnglish ||
         x.text ||
-        x.sentence ||
         x.question ||
         x.task ||
         ""
       );
+      blank = asString(x.blank || x.answer || "");
+      difficulty = asString(x.difficulty || "medium");
     }
 
     return {
       k: kCandidate,
-      prompt:
-        prompt && prompt !== "—"
-          ? prompt
+      type: type,
+      sentence: sentence && sentence !== "—"
+          ? sentence
           : `Write a sentence using the grammar from today's lesson (${i + 1})`,
+      blank: blank,
+      difficulty: difficulty
     };
   });
 
@@ -565,7 +573,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       transcript: asString(listeningRaw.transcript || listeningRaw.text || listeningRaw.passage || ""),
       questions: listeningQuestions,
     },
-    speakingTask: { prompt: asString(speakingTaskRaw.prompt || speakingTaskRaw.task || "") },
+    speakingTask: { text: asString(speakingTaskRaw.text || speakingTaskRaw.prompt || speakingTaskRaw.task || "") },
     writingTask: {
       prompt: writingTaskPrompt,
       requiredIdiom: requiredIdiom || "—",

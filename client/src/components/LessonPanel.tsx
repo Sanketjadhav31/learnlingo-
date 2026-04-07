@@ -185,13 +185,13 @@ export function LessonPanel({
           .map((q) => `${q.idx}. ${q.prompt}`)
       ].filter(isValidContent).join("\n\n") || "Listening content not available.",
       coreTasks: [
-        day.speakingTask?.prompt && isValidContent(day.speakingTask.prompt) ? `Speaking: ${day.speakingTask.prompt}` : null,
+        (day.speakingTask?.text || (day.speakingTask as any)?.prompt) && isValidContent(day.speakingTask.text || (day.speakingTask as any).prompt) ? `Speaking: Read-aloud practice text` : null,
         day.writingTask?.prompt && isValidContent(day.writingTask.prompt) ? `Writing: ${day.writingTask.prompt}` : null,
-        day.conversationTask?.prompt && isValidContent(day.conversationTask.prompt) ? `Conversation: ${day.conversationTask.prompt}` : null,
+        (day.conversationTask?.items || []).length > 0 ? `Conversation: ${day.conversationTask.items.length} Hindi sentences to translate` : null,
       ].filter(Boolean).join("\n\n") || "Core tasks not available.",
       sentences: (day.sentencePractice?.items || [])
-        .filter((s) => isValidContent(s.prompt))
-        .map((s) => `${s.k}. ${s.prompt}`)
+        .filter((s) => isValidContent(s.sentence || (s as any).prompt))
+        .map((s) => `${s.k}. ${s.type === 'fill_blank' ? s.sentence : (s.sentence || (s as any).prompt)}`)
         .join("\n") || "Sentence prompts not available.",
       questions: (day.questions?.items || [])
         .slice(0, qCount)
@@ -373,14 +373,47 @@ export function LessonPanel({
         ) : openSection === "sentences" ? (
           <div className="space-y-2">
             {(day.sentencePractice?.items || [])
-              .filter((s) => isValidContent(s.prompt))
-              .map((s) => (
-                <div key={s.k} className="rounded-lg border border-white/10 bg-white/5 p-3 flex gap-3">
-                  <span className="text-white/50 font-mono">{s.k}.</span>
-                  <span className="text-sm text-white/85">{formatText(s.prompt)}</span>
-                </div>
-              ))}
-            {(day.sentencePractice?.items || []).filter((s) => isValidContent(s.prompt)).length === 0 && (
+              .filter((s) => isValidContent(s.sentence || (s as any).prompt))
+              .map((s) => {
+                // Handle old format
+                const hasNewFormat = s.sentence && s.type;
+                if (!hasNewFormat && (s as any).prompt) {
+                  return (
+                    <div key={s.k} className="rounded-lg border border-white/10 bg-white/5 p-3 flex gap-3">
+                      <span className="text-white/50 font-mono">{s.k}.</span>
+                      <span className="text-sm text-white/85">{formatText((s as any).prompt)}</span>
+                    </div>
+                  );
+                }
+                
+                const isFillBlank = s.type === "fill_blank";
+                const difficultyColor = 
+                  s.difficulty === "easy" ? "bg-green-500/10 border-green-400/20" :
+                  s.difficulty === "hard" ? "bg-red-500/10 border-red-400/20" : 
+                  "bg-yellow-500/10 border-yellow-400/20";
+                
+                return (
+                  <div key={s.k} className={`rounded-lg border ${difficultyColor} p-3 flex gap-3`}>
+                    <span className="text-white/50 font-mono">{s.k}.</span>
+                    <div className="flex-1">
+                      {isFillBlank ? (
+                        <div className="text-sm text-white/85">
+                          <span className="text-purple-300 font-semibold">Fill in the blank: </span>
+                          {formatText(s.sentence)}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-white/85">{formatText(s.sentence)}</div>
+                      )}
+                      {s.difficulty && (
+                        <div className="text-xs text-white/50 mt-1">
+                          Difficulty: {s.difficulty}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            {(day.sentencePractice?.items || []).filter((s) => isValidContent(s.sentence || (s as any).prompt)).length === 0 && (
               <div className="text-sm text-white/60">Sentence prompts not available.</div>
             )}
             <div className="mt-2 text-xs text-white/50">{sentenceCount} prompts</div>
@@ -434,10 +467,10 @@ export function LessonPanel({
           </div>
         ) : openSection === "coreTasks" ? (
           <div className="space-y-3">
-            {day.speakingTask?.prompt && isValidContent(day.speakingTask.prompt) && (
+            {(day.speakingTask?.text || (day.speakingTask as any)?.prompt) && isValidContent(day.speakingTask.text || (day.speakingTask as any).prompt) && (
               <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-3">
-                <div className="text-xs text-emerald-300 font-semibold mb-2">🎤 Speaking Task</div>
-                <div className="text-sm text-white/85">{formatText(day.speakingTask.prompt)}</div>
+                <div className="text-xs text-emerald-300 font-semibold mb-2">🎤 Speaking Practice (Read Aloud)</div>
+                <div className="text-sm text-white/85 leading-loose">{formatText(day.speakingTask.text || (day.speakingTask as any).prompt)}</div>
               </div>
             )}
             {day.writingTask?.prompt && isValidContent(day.writingTask.prompt) && (
@@ -452,13 +485,20 @@ export function LessonPanel({
                 )}
               </div>
             )}
-            {day.conversationTask?.prompt && isValidContent(day.conversationTask.prompt) && (
+            {(day.conversationTask?.items || []).length > 0 && (
               <div className="rounded-lg border border-purple-400/20 bg-purple-500/10 p-3">
-                <div className="text-xs text-purple-300 font-semibold mb-2">💬 Conversation Task</div>
-                <div className="text-sm text-white/85">{formatText(day.conversationTask.prompt)}</div>
+                <div className="text-xs text-purple-300 font-semibold mb-3">💬 Conversation Practice</div>
+                <div className="text-xs text-white/60 mb-2">Translate these Hindi sentences to English:</div>
+                <div className="space-y-2">
+                  {day.conversationTask.items.map((item, i) => (
+                    <div key={i} className="text-sm text-amber-200 bg-amber-500/10 border border-amber-400/20 rounded px-2 py-1.5">
+                      {item.k}. {item.hindiSentence}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            {!day.speakingTask?.prompt && !day.writingTask?.prompt && !day.conversationTask?.prompt && (
+            {!(day.speakingTask?.text || (day.speakingTask as any)?.prompt) && !day.writingTask?.prompt && (day.conversationTask?.items || []).length === 0 && (
               <div className="text-sm text-white/60">Core tasks not available.</div>
             )}
           </div>

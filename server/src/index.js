@@ -774,12 +774,159 @@ async function main() {
   });
 
   // ============================================================================
+  // INTERVIEW PRACTICE & TECH QUIZ ROUTES
+  // ============================================================================
+  
+  console.log('🎤 Registering Interview Practice & Tech Quiz routes...');
+  
+  const { generateInterviewQuestionsGemini, updateInterviewHistory } = require("./trainer/interviewGenerator");
+  const { SUBJECTS } = require("./trainer/techQuizGenerator");
+
+  console.log('✓ Modules loaded successfully');
+  console.log('✓ About to register /api/interview/:dayNumber route...');
+  
+  // GET /api/interview/:dayNumber - Get or generate interview questions
+  app.get("/api/interview/:dayNumber", authRequired, async (req, res) => {
+    console.log('🎤 Interview route hit!');
+    const userId = req.userId;
+    const dayNumber = Number(req.params.dayNumber);
+    
+    try {
+      const state = await stateStore.getOrCreate(userId);
+      
+      // Only allow fetching for current day
+      if (dayNumber !== state.currentDay) {
+        return res.status(400).json({ 
+          ok: false, 
+          reject: { message: `Can only access interview questions for current day (${state.currentDay})` }
+        });
+      }
+      
+      // Check cache
+      if (state.interviewPractice?.[dayNumber]) {
+        logger.info(`📦 Returning cached interview questions for day ${dayNumber}`);
+        return res.json({ ok: true, data: state.interviewPractice[dayNumber] });
+      }
+      
+      // Generate new questions
+      const result = await generateInterviewQuestionsGemini({ state, dayNumber, userId });
+      
+      // Save to state
+      if (!state.interviewPractice) state.interviewPractice = {};
+      state.interviewPractice[dayNumber] = result;
+      
+      // Update history for 7-day uniqueness
+      updateInterviewHistory(state, dayNumber, result.questions);
+      
+      await stateStore.save(userId, state);
+      
+      return res.json({ ok: true, data: result });
+      
+    } catch (error) {
+      logger.error(`Interview generation error:`, error.message);
+      return res.status(500).json({ 
+        ok: false, 
+        reject: { message: error.message || "Failed to generate interview questions" }
+      });
+    }
+  });
+  
+  console.log('✓ Interview route registered');
+
+  console.log('✓ About to register tech quiz bulk route...');
+  
+  // POST /api/techquiz/:dayNumber/generate-all - Generate all subjects in ONE API call (20 questions total)
+  app.post("/api/techquiz/:dayNumber/generate-all", authRequired, async (req, res) => {
+    const userId = req.userId;
+    const dayNumber = Number(req.params.dayNumber);
+    
+    try {
+      const state = await stateStore.getOrCreate(userId);
+      
+      // Only allow for current day
+      if (dayNumber !== state.currentDay) {
+        return res.status(400).json({ 
+          ok: false, 
+          reject: { message: `Can only generate for current day (${state.currentDay})` }
+        });
+      }
+      
+      // Check if already generated for this day
+      const allSubjects = Object.keys(SUBJECTS);
+      const alreadyGenerated = allSubjects.filter(
+        subject => state.techQuiz?.[dayNumber]?.[subject]
+      );
+      
+      if (alreadyGenerated.length === allSubjects.length) {
+        logger.info(`📦 All subjects already generated for day ${dayNumber}`);
+        return res.json({ 
+          ok: true, 
+          message: "All subjects already generated",
+          data: state.techQuiz[dayNumber],
+          generated: allSubjects.length,
+          total: allSubjects.length
+        });
+      }
+      
+      // Use the BULK generator - ONE API call for all subjects (20 questions total)
+      const { generateAllSubjectsBulk } = require("./trainer/bulkQuizGenerator");
+      const { updateTechQuizHistory } = require("./trainer/techQuizGenerator");
+      
+      logger.info(`🚀 Starting bulk generation (20 questions total across all subjects)...`);
+      
+      const results = await generateAllSubjectsBulk({ state, dayNumber, userId });
+      
+      // Save all results to state
+      if (!state.techQuiz) state.techQuiz = {};
+      if (!state.techQuiz[dayNumber]) state.techQuiz[dayNumber] = {};
+      
+      for (const [subject, result] of Object.entries(results)) {
+        state.techQuiz[dayNumber][subject] = result;
+        updateTechQuizHistory(state, dayNumber, subject, result.questions);
+      }
+      
+      // Save state once after all subjects
+      await stateStore.save(userId, state);
+      
+      const totalQuestions = Object.values(results).reduce((sum, r) => sum + r.questions.length, 0);
+      
+      logger.info(`✅ Bulk generation complete: ${totalQuestions} questions saved`);
+      
+      return res.json({ 
+        ok: true, 
+        data: results,
+        generated: Object.keys(results).length,
+        total: allSubjects.length,
+        totalQuestions
+      });
+      
+    } catch (error) {
+      logger.error(`Bulk tech quiz generation error:`, error.message);
+      return res.status(500).json({ 
+        ok: false, 
+        reject: { message: error.message || "Failed to generate tech quizzes" }
+      });
+    }
+  });
+
+  // GET /api/techquiz/subjects - Get list of available subjects
+  app.get("/api/techquiz/subjects", authRequired, (req, res) => {
+    return res.json({ ok: true, subjects: Object.keys(SUBJECTS) });
+  });
+  
+  console.log('✓ All practice routes registered successfully!');
+
+  // ============================================================================
   // TEST ROUTES - Cumulative Test System
   // ============================================================================
+  
+  console.log('📝 Loading test modules...');
   
   const { generateTestGemini } = require("./trainer/testGenerator");
   const { evaluateTestGemini } = require("./trainer/testEvaluator");
   const { stripCorrectAnswers, validateTestSubmission, sendError, createAutoSaveResponse } = require("./trainer/testUtils");
+  
+  console.log('✓ Test modules loaded');
 
   // GET /api/test - Retrieve current test state
   app.get("/api/test", authRequired, async (req, res) => {

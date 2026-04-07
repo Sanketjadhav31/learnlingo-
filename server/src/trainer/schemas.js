@@ -25,7 +25,10 @@ const PronunciationWordSchema = z.object({
 
 const SentencePracticeItemSchema = z.object({
   k: z.number().int().min(1),
-  prompt: z.string().min(1),
+  type: z.enum(["fill_blank", "complete"]),
+  sentence: z.string().min(1),
+  blank: z.string().optional(), // The word/phrase that should fill the blank (for fill_blank type)
+  difficulty: z.enum(["easy", "medium", "hard"]).optional(),
 });
 
 const HindiTranslationItemSchema = z.object({
@@ -79,7 +82,7 @@ const DayContentSchema = z.object({
     questions: z.array(ListeningQuestionSchema).length(6),
   }),
   speakingTask: z.object({
-    prompt: z.string().min(1),
+    text: z.string().min(1), // Complete paragraph for user to read and practice speaking
   }),
   writingTask: z.object({
     prompt: z.string().min(1),

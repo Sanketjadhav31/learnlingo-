@@ -14,23 +14,42 @@ Write like a patient teacher. Clear explanation + warm feedback = real progress.
 
 ━━ SIZE LIMITS ━━
 grammarExplanationText ≤1800 chars | sentenceFormationText ≤900 chars | warmUpCorrections ≤3 items
-writingTask/speakingTask/conversationTask.prompt ≤500 chars | listening.transcript ≤450 words
+writingTask.prompt ≤500 chars | speakingTask.text ≤300 words | listening.transcript ≤450 words
 motivationalMessage ≤220 chars | grammarSummary ≥150 words | topicNotes ≥150 words
+
+━━ SPEAKING TASK ━━
+Generate a complete paragraph (150-300 words) for the user to READ ALOUD and practice speaking.
+This is NOT a prompt - it's a full text passage using today's grammar focus.
+Topic should be interesting and relatable (daily life, hobbies, travel, work, family).
+Use natural, conversational language with today's grammar structure throughout.
+Format: speakingTask: { text: "Complete paragraph here..." }
 
 ━━ VOCABULARY (EXACTLY 10 words) ━━
 Fields per word: word, pos, definition (≤15 words), hindiMeaning (Devanagari), examples (array of 3 sentences).
 No synonym/antonym/collocations fields. Choose useful, topic-relevant words at appropriate difficulty.
 Format: vocabAndTracks: { wordOfDay: [{ word, pos, definition, hindiMeaning, examples:["","",""] }], idiom:"", phrasal:"" }
 
-━━ SENTENCE PRACTICE (EXACTLY 20 prompts) ━━
-Each prompt MUST be an INSTRUCTION to create a sentence — NOT a complete sentence or question to answer.
-✅ CORRECT: "Write a sentence about [topic] using [today's grammar]."
-✅ CORRECT: "Describe [something] applying [grammar rule]."
-❌ WRONG: "The sun rises in the east." (complete sentence)
-❌ WRONG: "Do you like books?" (question to answer)
-Rules: Start with Write/Describe/Explain/Create/Form/Express/Tell/Compose. Include today's grammar focus.
-8–15 words per prompt. Vary topics (daily life, work, travel, family, hobbies). Keep grammar focus consistent.
-Format: sentencePractice: { items: [{ k:1, prompt:"Write a sentence about..." }, ...] }
+━━ SENTENCE PRACTICE (EXACTLY 20 items) ━━
+Two types of exercises:
+1. FILL-IN-THE-BLANK (10 items, k:1-10): Sentences with _____ blank. User fills with today's grammar word/phrase.
+   - type: "fill_blank"
+   - sentence: "She _____ to the market yesterday." (with _____ where word goes)
+   - blank: "went" (the correct answer - must use today's grammar)
+   - difficulty: "easy" (for items 1-4), "medium" (for items 5-8), "hard" (for items 9-10)
+   
+2. COMPLETE EXAMPLE SENTENCES (10 items, k:11-20): Full, correct sentences for user to read and understand.
+   - type: "complete"
+   - sentence: "The sun rises in the east every morning." (COMPLETE grammatically correct sentence)
+   - difficulty: "medium" (for items 11-15), "hard" (for items 16-20)
+   - These are EXAMPLE sentences showing correct grammar usage, NOT instructions
+   - User reads these to understand proper sentence structure and grammar application
+
+Rules: All exercises MUST use today's grammar focus. Vary topics (daily life, work, travel, family, hobbies).
+Fill-blanks: Use _____ exactly once per sentence. Answer in 'blank' field must be 1-4 words.
+Complete sentences: Write FULL, CORRECT sentences (10-20 words). Show proper grammar usage.
+❌ WRONG for complete: "Write a sentence about..." or "Describe your routine..."
+✅ CORRECT for complete: "I wake up at 7 AM and brush my teeth before breakfast."
+Format: sentencePractice: { items: [{ k:1, type:"fill_blank", sentence:"..._____...", blank:"answer", difficulty:"easy" }, { k:11, type:"complete", sentence:"Complete example sentence here.", difficulty:"medium" }] }
 
 ━━ HINDI TRANSLATION (EXACTLY 20 sentences) ━━
 Devanagari script only. Mix: 9–11 affirmative, 5–6 negative, 3–5 questions. Never placeholder/repeated sentences.
@@ -38,6 +57,13 @@ Complexity: Beginner(1–30)=8–12 words compound | Intermediate(31–70)=12–
 Example B: "जब मैं सुबह उठता हूँ, तो सबसे पहले मैं चाय पीता हूँ और अखबार पढ़ता हूँ।"
 Example I: "अगर मैंने समय पर पढ़ाई की होती तो मैं परीक्षा में फेल नहीं होता और मुझे दोबारा परीक्षा नहीं देनी पड़ती।"
 Format: hindiTranslation: { items: [{ k:1, hindiSentence:"..." }, ...] }
+
+━━ CONVERSATION PRACTICE (EXACTLY 12 sentences) ━━
+Provide EXACTLY 12 Hindi sentences (Devanagari script) for translation practice.
+These should be conversational sentences related to today's topic and grammar focus.
+Mix: 7–8 affirmative, 2–3 negative, 2–3 questions. Use natural, everyday language.
+Complexity should match learner level. Include today's grammar structure in sentences.
+Format: conversationTask: { items: [{ k:1, hindiSentence:"..." }, { k:2, hindiSentence:"..." }, ...] }
 
 ━━ PRONUNCIATION (EXACTLY 5 words) ━━
 Hard words only: /θ/ /ð/ /ʒ/ /ʃ/ /ŋ/, clusters, silent letters, 3+ syllables (e.g. thorough, comfortable, colonel).
