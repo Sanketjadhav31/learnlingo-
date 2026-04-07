@@ -36,7 +36,6 @@ type SubmissionData = {
   hindiTranslation: string[];
   questions: string[];
   listening: string[];
-  reflection: string[];
   vocabQuiz?: string[];
 };
 
@@ -50,7 +49,6 @@ function parseSubmission(text: string, day: DayContent): SubmissionData {
     hindiTranslation: Array(20).fill(""),
     questions: Array(template.questionCount).fill(""),
     listening: Array(template.listeningCount).fill(""),
-    reflection: Array(template.reflectionCount).fill(""),
   };
 
   if (day.dayType === "weekly_review" && template.vocabQuizCount) {
@@ -90,9 +88,6 @@ function parseSubmission(text: string, day: DayContent): SubmissionData {
     } else if (trimmed.startsWith("8. Vocabulary Quiz:")) {
       section = "vocabQuiz";
       itemIndex = 0;
-    } else if (trimmed.startsWith("8. Reflection") || trimmed.startsWith("9. Reflection")) {
-      section = "reflection";
-      itemIndex = 0;
     } else if (trimmed) {
       if (section === "writing" && !data.writing) {
         data.writing = trimmed;
@@ -112,9 +107,6 @@ function parseSubmission(text: string, day: DayContent): SubmissionData {
       } else if (section === "listening" && /^\d+\./.test(trimmed)) {
         const match = trimmed.match(/^\d+\.\s*(.*)$/);
         if (match && match[1] && match[1] !== "YOUR ANSWER") data.listening[itemIndex++] = match[1];
-      } else if (section === "reflection" && /^\d+\./.test(trimmed)) {
-        const match = trimmed.match(/^\d+\.\s*(.*)$/);
-        if (match && match[1] && match[1] !== "YOUR ANSWER") data.reflection[itemIndex++] = match[1];
       } else if (section === "vocabQuiz" && /^\d+\./.test(trimmed) && data.vocabQuiz) {
         const match = trimmed.match(/^\d+\.\s*(.*)$/);
         if (match && match[1] && match[1] !== "YOUR ANSWER") data.vocabQuiz[itemIndex++] = match[1];
@@ -160,23 +152,13 @@ function buildSubmissionText(data: SubmissionData, day: DayContent): string {
   const listeningLines = data.listening
     .map((l, i) => l && l.trim() ? `${i + 1}. ${l}` : "")
     .filter(l => l);
-  text += `7. Listening Comprehension:\n${listeningLines.join("\n")}\n\n`;
+  text += `7. Listening Comprehension:\n${listeningLines.join("\n")}`;
   
   if (day.dayType === "weekly_review" && data.vocabQuiz) {
     const vocabLines = data.vocabQuiz
       .map((v, i) => v && v.trim() ? `${i + 1}. ${v}` : "")
       .filter(v => v);
-    text += `8. Vocabulary Quiz:\n${vocabLines.join("\n")}\n\n`;
-    
-    const reflectionLines = data.reflection
-      .map((r, i) => r && r.trim() ? `${i + 1}. ${r}` : "")
-      .filter(r => r);
-    text += `9. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
-  } else {
-    const reflectionLines = data.reflection
-      .map((r, i) => r && r.trim() ? `${i + 1}. ${r}` : "")
-      .filter(r => r);
-    text += `8. Reflection (required, not graded):\n${reflectionLines.join("\n")}`;
+    text += `\n\n8. Vocabulary Quiz:\n${vocabLines.join("\n")}`;
   }
 
   return text;
@@ -239,7 +221,6 @@ export function SubmissionEditor(props: {
       hindiTranslation: Array(20).fill(""),
       questions: Array(props.day.submissionTemplate.questionCount).fill(""),
       listening: Array(props.day.submissionTemplate.listeningCount).fill(""),
-      reflection: Array(props.day.submissionTemplate.reflectionCount).fill(""),
     };
     if (props.day.dayType === "weekly_review" && props.day.submissionTemplate.vocabQuizCount) {
       emptyData.vocabQuiz = Array(props.day.submissionTemplate.vocabQuizCount).fill("");
@@ -297,8 +278,6 @@ export function SubmissionEditor(props: {
       newData[field] = Array(props.day.submissionTemplate.questionCount).fill('');
     } else if (field === 'listening') {
       newData[field] = Array(props.day.submissionTemplate.listeningCount).fill('');
-    } else if (field === 'reflection') {
-      newData[field] = Array(props.day.submissionTemplate.reflectionCount).fill('');
     } else if (field === 'vocabQuiz' && newData.vocabQuiz) {
       newData[field] = Array(props.day.submissionTemplate.vocabQuizCount || 0).fill('');
     }
@@ -322,7 +301,6 @@ export function SubmissionEditor(props: {
       hindiTranslation: Array(20).fill(""),
       questions: Array(props.day.submissionTemplate.questionCount).fill(""),
       listening: Array(props.day.submissionTemplate.listeningCount).fill(""),
-      reflection: Array(props.day.submissionTemplate.reflectionCount).fill(""),
     };
     if (props.day.dayType === "weekly_review" && props.day.submissionTemplate.vocabQuizCount) {
       emptyData.vocabQuiz = Array(props.day.submissionTemplate.vocabQuizCount).fill("");
@@ -348,7 +326,6 @@ export function SubmissionEditor(props: {
     ["hindi", "Hindi→English"],
     ["questions", "Questions"],
     ["listening", "Listening"],
-    ["reflection", "Reflection"],
   ] as const;
 
   if (mode === "text") {
@@ -643,26 +620,6 @@ export function SubmissionEditor(props: {
                     onChange={(e) => updateArrayItem("listening", i, e.target.value)}
                     className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white/90 outline-none focus:border-white/20"
                     placeholder="Your answer..."
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {activeSection === "reflection" && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-white">Reflection (required, not graded)</div>
-                <ResetButton onReset={() => resetField("reflection")} label="Reset" className="text-[10px] px-2 py-1" />
-              </div>
-              {Array.from({ length: template.reflectionCount }, (_, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="text-xs text-white/60">{i + 1}. Reflection prompt</div>
-                  <textarea
-                    value={formData.reflection[i] || ""}
-                    onChange={(e) => updateArrayItem("reflection", i, e.target.value)}
-                    className="w-full h-32 resize-none rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-white/90 outline-none focus:border-white/20"
-                    placeholder="Your reflection..."
                   />
                 </div>
               ))}
