@@ -68,7 +68,7 @@ export type DayContent = {
   };
   speakingTask: { prompt: string };
   writingTask: { prompt: string; requiredIdiom: string; requiredPhrasal: string };
-  conversationTask: { prompt: string };
+  conversationTask: { items: { k: number; hindiSentence: string }[] };
   sentencePractice: { items: { k: number; prompt: string }[] };
   hindiTranslation: { items: { k: number; hindiSentence: string }[] };
   questions: { items: { idx: number; prompt: string }[] };

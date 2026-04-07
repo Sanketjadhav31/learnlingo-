@@ -52,7 +52,6 @@ const DayContentSchema = z.object({
     hindiTranslationCount: z.number().int().min(1),
     questionCount: z.number().int().min(1),
     listeningCount: z.number().int().min(1),
-    reflectionCount: z.number().int().min(1).max(5),
     conversationMinTurns: z.number().int().min(1),
     vocabQuizCount: z.number().int().min(0).optional(),
   }),
@@ -88,7 +87,10 @@ const DayContentSchema = z.object({
     requiredPhrasal: z.string().min(1),
   }),
   conversationTask: z.object({
-    prompt: z.string().min(1),
+    items: z.array(z.object({
+      k: z.number().int(),
+      hindiSentence: z.string().min(1),
+    })),
   }),
   sentencePractice: z.object({
     items: z.array(SentencePracticeItemSchema),

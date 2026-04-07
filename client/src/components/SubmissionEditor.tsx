@@ -93,8 +93,9 @@ function parseSubmission(text: string, day: DayContent): SubmissionData {
         data.writing = trimmed;
       } else if (section === "speaking" && !data.speaking) {
         data.speaking = trimmed;
-      } else if (section === "conversation" && (trimmed.startsWith("A:") || trimmed.startsWith("B:"))) {
-        data.conversation.push(trimmed);
+      } else if (section === "conversation" && /^\d+\./.test(trimmed)) {
+        const match = trimmed.match(/^\d+\.\s*(.*)$/);
+        if (match && match[1] && match[1] !== "YOUR ANSWER") data.conversation[itemIndex++] = match[1];
       } else if (section === "sentences" && /^\d+\./.test(trimmed)) {
         const match = trimmed.match(/^\d+\.\s*(.*)$/);
         if (match && match[1] && match[1] !== "YOUR ANSWER") data.sentences[itemIndex++] = match[1];
@@ -127,7 +128,9 @@ function buildSubmissionText(data: SubmissionData, day: DayContent): string {
   text += `2. Speaking Task:\n${data.speaking || ""}\n\n`;
   
   // Conversation - only include non-empty lines
-  const conversationLines = data.conversation.filter(c => c && c.trim() && !c.match(/^[AB]:\s*$/));
+  const conversationLines = data.conversation
+    .map((c, i) => c && c.trim() ? `${i + 1}. ${c}` : "")
+    .filter(c => c);
   text += `3. Conversation Practice:\n${conversationLines.join("\n")}\n\n`;
   
   // Sentences - only include non-empty ones
@@ -483,36 +486,29 @@ export function SubmissionEditor(props: {
           {activeSection === "conversation" && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-white">Conversation Practice ({template.conversationMinTurns} turns)</div>
+                <div className="text-sm font-semibold text-white">Conversation Practice ({template.conversationMinTurns} sentences)</div>
                 <ResetButton onReset={() => resetField("conversation")} label="Reset" className="text-[10px] px-2 py-1" />
               </div>
-              <div className="text-sm text-white/70 bg-black/20 p-3 rounded border border-white/5 max-h-32 overflow-y-auto leading-relaxed">
-                {formatPromptText(props.day.conversationTask.prompt)}
+              <div className="text-xs text-white/60 bg-indigo-500/10 border border-indigo-400/30 rounded p-2 mb-3">
+                📝 Translate these Hindi sentences to English. Write natural, conversational English sentences.
               </div>
-              {conversationTurns.map((speaker, i) => {
-                // Extract the actual text without the speaker prefix
-                const currentValue = formData.conversation[i] || "";
-                const textWithoutPrefix = currentValue.startsWith(`${speaker}:`) 
-                  ? currentValue.substring(speaker.length + 1).trimStart() 
-                  : currentValue;
-                
-                return (
-                  <div key={i} className="flex gap-2 items-start">
-                    <div className="text-xs font-semibold text-white/70 mt-2 w-6">{speaker}:</div>
-                    <input
-                      value={textWithoutPrefix}
-                      onChange={(e) => {
-                        const newConv = [...formData.conversation];
-                        // Don't trim the value - preserve spaces as user types
-                        newConv[i] = `${speaker}: ${e.target.value}`;
-                        updateFormData("conversation", newConv);
-                      }}
-                      className="flex-1 rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white/90 outline-none focus:border-white/20"
-                      placeholder={`${speaker}'s response...`}
-                    />
+              {(props.day.conversationTask?.items || []).map((item, i) => (
+                <div key={i} className="space-y-1">
+                  <div className="text-sm text-amber-200 bg-amber-500/10 border border-amber-400/20 rounded px-2 py-1.5">
+                    {item.k}. {item.hindiSentence}
                   </div>
-                );
-              })}
+                  <input
+                    value={formData.conversation[i] || ""}
+                    onChange={(e) => {
+                      const newConv = [...formData.conversation];
+                      newConv[i] = e.target.value;
+                      updateFormData("conversation", newConv);
+                    }}
+                    className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white/90 outline-none focus:border-white/20"
+                    placeholder="Your English translation..."
+                  />
+                </div>
+              ))}
             </div>
           )}
           

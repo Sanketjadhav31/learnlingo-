@@ -542,8 +542,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       hindiTranslationCount: 20,
       questionCount,
       listeningCount: 6,
-      reflectionCount: 2,
-      conversationMinTurns: 8,
+      conversationMinTurns: 12,
       vocabQuizCount,
     },
     dayTheme: asString(raw?.dayTheme || raw?.theme || raw?.topic || ""),
@@ -572,7 +571,14 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
       requiredIdiom: requiredIdiom || "—",
       requiredPhrasal: requiredPhrasal || "—",
     },
-    conversationTask: { prompt: asString(conversationTaskRaw.prompt || conversationTaskRaw.task || "") },
+    conversationTask: { 
+      items: Array.isArray(conversationTaskRaw.items) 
+        ? conversationTaskRaw.items.map((item, i) => ({
+            k: item.k || i + 1,
+            hindiSentence: asString(item.hindiSentence || "")
+          }))
+        : []
+    },
     sentencePractice: { items: sentencePractice },
     hindiTranslation: { items: hindiTranslation },
     questions: { items: questions },

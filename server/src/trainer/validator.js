@@ -57,15 +57,6 @@ function parseNumberedListBlock(lines, startIdx, endIdx) {
   return { itemsByNum, extraNonEmptyLines };
 }
 
-function validateReflection(reflectionMap, reflectionCount) {
-  for (let n = 1; n <= reflectionCount; n++) {
-    const v = reflectionMap.get(n);
-    if (v === undefined) return `Reflection missing item ${n}.`;
-    if (!String(v).trim() || String(v).trim() === "-") return `Reflection item ${n} is empty/invalid.`;
-  }
-  return null;
-}
-
 function countWords(text) {
   return String(text || "")
     .trim()
@@ -124,7 +115,6 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     { key: "hindiTranslation", label: "5. Hindi to English Translation:" },
     { key: "questions", label: "6. Questions:" },
     { key: "listening", label: "7. Listening Comprehension:" },
-    { key: "reflection", label: "8. Reflection (required, not graded):" },
   ];
 
   const labelsWeekly = [
@@ -136,7 +126,6 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     { key: "questions", label: "6. Questions:" },
     { key: "listening", label: "7. Listening Comprehension:" },
     { key: "vocabQuiz", label: "8. Vocabulary Quiz:" },
-    { key: "reflection", label: "9. Reflection (required, not graded):" },
   ];
 
   const labels = dayContent.dayType === "weekly_review" ? labelsWeekly : labelsNormal;
@@ -167,7 +156,6 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
 
   const writingTask = blockBetween("writing", "speaking");
   const speakingTask = blockBetween("speaking", "conversation");
-  const conversationPractice = blockBetween("conversation", "sentences");
   if (countWords(writingTask) < 40) {
     return { ok: false, reason: "Writing task must contain at least 60 words.", details: [] };
   }
@@ -253,7 +241,7 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
 
   const listeningStart = labelIndices.listening + 1;
   const actualListeningEnd =
-    dayContent.dayType === "weekly_review" ? labelIndices.vocabQuiz : labelIndices.reflection;
+    dayContent.dayType === "weekly_review" ? labelIndices.vocabQuiz : lines.length;
   const listeningBlock = parseNumberedListBlock(lines, listeningStart, actualListeningEnd);
   if (listeningBlock.extraNonEmptyLines.length) {
     return {
@@ -276,7 +264,7 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
   let vocabQuiz = null;
   if (dayContent.dayType === "weekly_review") {
     const vocabStart = labelIndices.vocabQuiz + 1;
-    const vocabEnd = labelIndices.reflection;
+    const vocabEnd = lines.length;
     const vocabBlock = parseNumberedListBlock(lines, vocabStart, vocabEnd);
     if (vocabBlock.extraNonEmptyLines.length) {
       return { ok: false, reason: `Vocabulary Quiz has unexpected non-empty lines.`, details: [] };
@@ -296,31 +284,25 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     };
   }
 
-  const reflectionStart = labelIndices.reflection + 1;
-  const reflectionEnd = lines.length;
-  const reflectionBlock = parseNumberedListBlock(lines, reflectionStart, reflectionEnd);
-  const reflectionError = validateReflection(reflectionBlock.itemsByNum, expected.reflectionCount);
-  if (reflectionError) return { ok: false, reason: reflectionError, details: [] };
+  const conversationStart = labelIndices.conversation + 1;
+  const conversationEnd = labelIndices.sentences;
+  const conversationCount = expected.conversationMinTurns;
 
-  const turnLines = String(conversationPractice || "")
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.startsWith("A:") || l.startsWith("B:"));
-  if (turnLines.length < expected.conversationMinTurns) {
+  const conversationBlock = parseNumberedListBlock(lines, conversationStart, conversationEnd);
+  if (conversationBlock.extraNonEmptyLines.length) {
     return {
       ok: false,
-      reason: `Conversation Practice must contain at least ${expected.conversationMinTurns} exchanges. Found ${turnLines.length}.`,
-      details: [],
+      reason: `Conversation Practice has unexpected non-empty lines.`,
+      details: conversationBlock.extraNonEmptyLines.slice(0, 5).map((x) => x.line),
     };
   }
-  for (const [idx, line] of turnLines.entries()) {
-    const text = line.replace(/^[AB]:\s*/i, "");
-    if (countWords(text) < 2) {
-      return {
-        ok: false,
-        reason: `Conversation turn ${idx + 1} must have at least 5 words.`,
-        details: [],
-      };
+  for (let n = 1; n <= conversationCount; n++) {
+    const v = conversationBlock.itemsByNum.get(n);
+    if (v === undefined || !String(v).trim() || String(v).trim() === "-") {
+      return { ok: false, reason: `Conversation sentence ${n} is empty/invalid.`, details: [] };
+    }
+    if (countWords(v) < 2) {
+      return { ok: false, reason: `Conversation sentence ${n} must be at least 3 words.`, details: [] };
     }
   }
 
@@ -328,7 +310,10 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     dayNumber: dayContent.dayNumber,
     writingTask,
     speakingTask,
-    conversationPractice,
+    conversationPractice: Array.from({ length: conversationCount }, (_, i) => ({
+      k: i + 1,
+      text: conversationBlock.itemsByNum.get(i + 1),
+    })),
     sentencePractice: Array.from({ length: sentenceCount }, (_, i) => ({
       k: i + 1,
       text: sentenceBlock.itemsByNum.get(i + 1),
@@ -344,10 +329,6 @@ function parseAndValidateSubmission({ submissionText, dayContent }) {
     listening: Array.from({ length: listeningCount }, (_, i) => ({
       k: i + 1,
       text: listeningBlock.itemsByNum.get(i + 1),
-    })),
-    reflection: Array.from({ length: expected.reflectionCount }, (_, i) => ({
-      k: i + 1,
-      text: reflectionBlock.itemsByNum.get(i + 1),
     })),
     vocabQuiz,
   };

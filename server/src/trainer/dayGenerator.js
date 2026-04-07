@@ -104,11 +104,10 @@ function buildDayResponseSchema({ dayType, sentenceCount, questionCount, vocabQu
           hindiTranslationCount: schemaInt(),
           questionCount: schemaInt(),
           listeningCount: schemaInt(),
-          reflectionCount: schemaInt(),
           conversationMinTurns: schemaInt(),
           vocabQuizCount: schemaInt(),
         },
-        ["type", "sentenceCount", "hindiTranslationCount", "questionCount", "listeningCount", "reflectionCount", "conversationMinTurns", "vocabQuizCount"]
+        ["type", "sentenceCount", "hindiTranslationCount", "questionCount", "listeningCount", "conversationMinTurns", "vocabQuizCount"]
       ),
       dayTheme: schemaStr(),
       grammarFocus: schemaStr(),
@@ -144,7 +143,13 @@ function buildDayResponseSchema({ dayType, sentenceCount, questionCount, vocabQu
         { prompt: schemaStr(), requiredIdiom: schemaStr(), requiredPhrasal: schemaStr() },
         ["prompt", "requiredIdiom", "requiredPhrasal"]
       ),
-      conversationTask: schemaObj({ prompt: schemaStr() }, ["prompt"]),
+      conversationTask: schemaObj({ 
+        items: schemaArr(
+          schemaObj({ k: schemaInt(), hindiSentence: schemaStr() }, ["k", "hindiSentence"]),
+          conversationMinTurns,
+          conversationMinTurns
+        )
+      }, ["items"]),
       sentencePractice: schemaObj({ items: schemaArr(sentenceItem, sentenceCount, sentenceCount) }, ["items"]),
       hindiTranslation: schemaObj({ items: schemaArr(hindiItem, 20, 20) }, ["items"]),
       questions: schemaObj({ items: schemaArr(qItem, questionCount, questionCount) }, ["items"]),
@@ -219,8 +224,7 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
   const questionCount = dayType === "weekly_review" ? 10 : 6; // strict count for validator/UI
   const vocabQuizCount = dayType === "weekly_review" ? vocabWeekWords.length : 0;
   const listeningCount = 6; // Changed from 3 to 6
-  const reflectionCount = 2;
-  const conversationMinTurns = 8;
+  const conversationMinTurns = 12; // Changed from 8 to 12
 
   // Build compressed learner context if available
   let learnerContext = null;
@@ -265,7 +269,6 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
       hindiTranslationCount: 20,
       questionCount,
       listeningCount,
-      reflectionCount,
       conversationMinTurns,
       vocabQuizCount,
     },
@@ -278,7 +281,6 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
       requiredPhrasalCount: 1,
       hindiTranslationCount: 20,
       listeningCount,
-      reflectionCount,
       conversationMinTurns,
       sentenceCount,
       questionCount,
@@ -296,12 +298,11 @@ async function generateDayContentGemini({ state, dayNumber, userId, previousDayS
       hindiTranslationCount: 20,
       questionCount,
       listeningCount,
-      reflectionCount,
       conversationMinTurns,
       vocabQuizCount,
     },
     strictInstructionForSubmissionTemplate:
-      "submissionTemplate.type MUST equal dayType, and submissionTemplate MUST include the exact numeric values for sentenceCount/hindiTranslationCount/questionCount/listeningCount/reflectionCount/conversationMinTurns/vocabQuizCount. hindiTranslation MUST contain exactly 20 simple Hindi sentences (in Devanagari script) that the learner will translate to English. These should be everyday sentences appropriate for the learner's level.",
+      "submissionTemplate.type MUST equal dayType, and submissionTemplate MUST include the exact numeric values for sentenceCount/hindiTranslationCount/questionCount/listeningCount/conversationMinTurns/vocabQuizCount. hindiTranslation MUST contain exactly 20 simple Hindi sentences (in Devanagari script) that the learner will translate to English. These should be everyday sentences appropriate for the learner's level.",
     strictInstructionForGrammarFocus:
       `grammarFocus MUST be set to: "${todaysTopic}". This is the ONLY topic you should teach today. ${isReview ? 'Since this is a review day, create content that tests all topics from this week.' : 'Do not mix in other grammar topics.'}`,
     // Strong hint to prevent schema-missing output.
