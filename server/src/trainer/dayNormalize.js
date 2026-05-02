@@ -512,6 +512,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
     const x = rawQuestionItems[i];
     let idxCandidate = i + 1;
     let prompt = "";
+    let correctAnswer = "";
 
     if (typeof x === "string") {
       prompt = x;
@@ -522,6 +523,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
         idxCandidate = x.k >= 1 ? x.k : i + 1;
       }
       prompt = asString(x.prompt || x.question || x.text || x.instruction || x.q || "");
+      correctAnswer = asString(x.correctAnswer || x.answer || x.correct || "");
     }
 
     return {
@@ -530,6 +532,10 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
         prompt && prompt !== "—"
           ? prompt
           : `Answer question ${i + 1} based on today's lesson`,
+      correctAnswer:
+        correctAnswer && correctAnswer !== "—"
+          ? correctAnswer
+          : `Correct answer for question ${i + 1}`,
     };
   });
 
@@ -576,6 +582,7 @@ function normalizeDayContent(raw, { dayNumber, dayType, sentenceCount, questionC
     speakingTask: { text: asString(speakingTaskRaw.text || speakingTaskRaw.prompt || speakingTaskRaw.task || "") },
     writingTask: {
       prompt: writingTaskPrompt,
+      modelAnswer: asString(writingTaskRaw.modelAnswer || ""),
       requiredIdiom: requiredIdiom || "—",
       requiredPhrasal: requiredPhrasal || "—",
     },

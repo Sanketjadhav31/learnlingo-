@@ -32,6 +32,7 @@ export default function App() {
   const [authUser, setAuthUser] = useState<{ userId: string; name: string; email: string } | null>(null);
   const [authMode, setAuthMode] = useState<"login" | "signup" | "reset">("login");
   const [authForm, setAuthForm] = useState({ name: "", email: "", password: "", newPassword: "" });
+  const [authError, setAuthError] = useState<string>("");
   const [tracker, setTracker] = useState<Tracker | null>(null);
   const [day, setDay] = useState<DayContent | null>(null);
   const [dayProgress, setDayProgress] = useState<DayProgress | null>(null);
@@ -270,18 +271,64 @@ export default function App() {
   }
 
   async function onAuthSubmit() {
+    setAuthError(""); // Clear previous errors
+    
     try {
       if (authMode === "reset") {
+        if (!authForm.email || !authForm.email.includes("@")) {
+          const msg = "Please enter a valid email address";
+          setAuthError(msg);
+          showToast("error", msg);
+          return;
+        }
         if (!authForm.newPassword || authForm.newPassword.length < 8) {
-          showToast("error", "New password must be at least 8 characters");
+          const msg = "New password must be at least 8 characters";
+          setAuthError(msg);
+          showToast("error", msg);
           return;
         }
         const { requestPasswordReset } = await import("./lib/api");
         await requestPasswordReset(authForm.email, authForm.newPassword);
-        showToast("success", "Password updated successfully! You can now login.");
+        showToast("success", "✅ Password updated successfully! You can now login with your new password.", 4000);
         setAuthMode("login");
         setAuthForm({ name: "", email: authForm.email, password: authForm.newPassword, newPassword: "" });
         return;
+      }
+      
+      if (authMode === "signup") {
+        if (!authForm.name || authForm.name.trim().length < 2) {
+          const msg = "Please enter your full name";
+          setAuthError(msg);
+          showToast("error", msg);
+          return;
+        }
+        if (!authForm.email || !authForm.email.includes("@")) {
+          const msg = "Please enter a valid email address";
+          setAuthError(msg);
+          showToast("error", msg);
+          return;
+        }
+        if (!authForm.password || authForm.password.length < 8) {
+          const msg = "Password must be at least 8 characters";
+          setAuthError(msg);
+          showToast("error", msg);
+          return;
+        }
+      }
+      
+      if (authMode === "login") {
+        if (!authForm.email || !authForm.email.includes("@")) {
+          const msg = "Please enter a valid email address";
+          setAuthError(msg);
+          showToast("error", msg);
+          return;
+        }
+        if (!authForm.password) {
+          const msg = "Please enter your password";
+          setAuthError(msg);
+          showToast("error", msg);
+          return;
+        }
       }
       
       const res = authMode === "signup"
@@ -290,9 +337,11 @@ export default function App() {
       setAuthToken(res.token);
       setAuthUser(res.user);
       setAuthForm({ name: "", email: "", password: "", newPassword: "" });
-      showToast("success", authMode === "signup" ? "Signup successful" : "Login successful");
+      showToast("success", authMode === "signup" ? "🎉 Account created successfully! Welcome aboard!" : "✅ Login successful! Welcome back!", 3000);
     } catch (e: unknown) {
-      showToast("error", e instanceof Error ? e.message : "Authentication failed");
+      const errorMsg = e instanceof Error ? e.message : "Authentication failed";
+      setAuthError(errorMsg);
+      showToast("error", errorMsg, 4000);
     }
   }
 
@@ -335,12 +384,28 @@ export default function App() {
 
           {/* Form */}
           <div className="space-y-4">
+            {/* Error Message Display */}
+            {authError && (
+              <div className="rounded-lg border border-rose-400/50 bg-rose-500/20 px-4 py-3 text-sm text-rose-100 flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <span className="text-base flex-shrink-0">⚠️</span>
+                <span className="flex-1">{authError}</span>
+                <button
+                  onClick={() => setAuthError("")}
+                  className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity text-xs"
+                  type="button"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            
             {authMode === "signup" && (
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-1.5">Full Name</label>
                 <input 
                   value={authForm.name} 
                   onChange={(e) => setAuthForm((p) => ({ ...p, name: e.target.value }))} 
+                  onKeyDown={(e) => e.key === "Enter" && onAuthSubmit()}
                   placeholder="Enter your name" 
                   className="w-full rounded-lg border border-white/20 bg-black/40 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 transition-all" 
                 />
@@ -353,6 +418,7 @@ export default function App() {
                 type="email"
                 value={authForm.email} 
                 onChange={(e) => setAuthForm((p) => ({ ...p, email: e.target.value }))} 
+                onKeyDown={(e) => e.key === "Enter" && onAuthSubmit()}
                 placeholder="your@email.com" 
                 className="w-full rounded-lg border border-white/20 bg-black/40 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 transition-all" 
               />
@@ -365,6 +431,7 @@ export default function App() {
                   type="password" 
                   value={authForm.newPassword} 
                   onChange={(e) => setAuthForm((p) => ({ ...p, newPassword: e.target.value }))} 
+                  onKeyDown={(e) => e.key === "Enter" && onAuthSubmit()}
                   placeholder="Enter new password (min 8 characters)" 
                   className="w-full rounded-lg border border-white/20 bg-black/40 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 transition-all" 
                 />
@@ -376,6 +443,7 @@ export default function App() {
                   type="password" 
                   value={authForm.password} 
                   onChange={(e) => setAuthForm((p) => ({ ...p, password: e.target.value }))} 
+                  onKeyDown={(e) => e.key === "Enter" && onAuthSubmit()}
                   placeholder="Minimum 8 characters" 
                   className="w-full rounded-lg border border-white/20 bg-black/40 px-4 py-2.5 text-white placeholder:text-white/40 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 transition-all" 
                 />
@@ -398,6 +466,7 @@ export default function App() {
                 onClick={() => {
                   setAuthMode("reset");
                   setAuthForm({ name: "", email: "", password: "", newPassword: "" });
+                  setAuthError("");
                 }} 
                 className="w-full text-sm text-indigo-300 hover:text-indigo-200 transition-colors" 
                 type="button"
@@ -410,6 +479,7 @@ export default function App() {
               onClick={() => {
                 setAuthMode((m) => m === "login" ? "signup" : "login");
                 setAuthForm({ name: "", email: "", password: "", newPassword: "" });
+                setAuthError("");
               }} 
               className="w-full text-sm text-white/60 hover:text-white/80 transition-colors" 
               type="button"
@@ -422,6 +492,16 @@ export default function App() {
             </button>
           </div>
         </div>
+        
+        {/* Toast Notification for Auth Page */}
+        {toast && (
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            onClose={() => setToast(null)}
+            duration={toast.duration || 3000}
+          />
+        )}
       </div>
     );
   }

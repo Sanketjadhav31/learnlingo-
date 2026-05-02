@@ -61,8 +61,8 @@ export function InterviewPanel({ currentDay }: { currentDay: number }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 bg-gray-800 rounded-xl border border-gray-700">
         <LoadingSpinner />
-        <p className="mt-6 text-gray-200 font-bold text-xl">🎤 Loading Interview Questions...</p>
-        <p className="mt-2 text-gray-400">Preparing your interview questions for today...</p>
+        <p className="mt-6 text-gray-200 font-bold text-xl">🎤 Preparing Your Interview Session...</p>
+        <p className="mt-2 text-gray-400">Setting up your interview meeting questions...</p>
       </div>
     );
   }
@@ -83,6 +83,34 @@ export function InterviewPanel({ currentDay }: { currentDay: number }) {
 
   return (
     <div className="space-y-6">
+      {/* Interview Meeting Context */}
+      <div className="bg-gradient-to-r from-[#2a2a2a] to-[#1e1e1e] border border-[#4a4a4a] rounded-xl p-5">
+        <div className="flex items-start gap-3">
+          <span className="text-3xl">🎤</span>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-white mb-2">Interview Meeting Practice</h3>
+            <p className="text-sm text-[#d4d4d4] leading-relaxed mb-3">
+              Imagine you're sitting in a real interview meeting. The interviewer asks you these questions. 
+              Practice responding naturally and confidently, as if you're having a professional conversation.
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="px-2 py-1 bg-[#3a3a3a] text-[#ffa116] rounded border border-[#4a4a4a]">
+                💬 Speak naturally
+              </span>
+              <span className="px-2 py-1 bg-[#3a3a3a] text-[#ffa116] rounded border border-[#4a4a4a]">
+                👁️ Maintain eye contact
+              </span>
+              <span className="px-2 py-1 bg-[#3a3a3a] text-[#ffa116] rounded border border-[#4a4a4a]">
+                ⏱️ Keep answers concise
+              </span>
+              <span className="px-2 py-1 bg-[#3a3a3a] text-[#ffa116] rounded border border-[#4a4a4a]">
+                😊 Stay confident
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Type Filter Pills */}
       <div>
         <div className="flex flex-wrap gap-2">
@@ -130,7 +158,7 @@ export function InterviewPanel({ currentDay }: { currentDay: number }) {
 
       {filteredQuestions.length === 0 && (
         <div className="text-center py-16 bg-gray-800 rounded-xl border border-gray-700">
-          <p className="text-gray-400 text-lg">No questions found for this filter.</p>
+          <p className="text-gray-400 text-lg">No interview questions found for this filter.</p>
         </div>
       )}
     </div>
@@ -158,18 +186,18 @@ function QuestionCard({
         onClick={onToggle}
         className="px-4 py-2 bg-[#3a3a3a] text-white text-sm font-medium rounded border border-[#4a4a4a] hover:bg-[#4a4a4a] transition"
       >
-        {isExpanded ? "Hide" : "Show"} Answer
+        {isExpanded ? "Hide Response" : "Show My Response"}
       </button>
 
       {isExpanded && (
         <div className="mt-4 pt-4 border-t border-[#3e3e3e] space-y-3">
           <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#3e3e3e]">
-            <p className="text-xs font-semibold text-[#a0a0a0] mb-2">Model Answer:</p>
-            <p className="text-sm text-[#d4d4d4] leading-relaxed">{question.modelAnswer}</p>
+            <p className="text-xs font-semibold text-[#a0a0a0] mb-2">💬 Your Response (Model Answer):</p>
+            <p className="text-sm text-[#d4d4d4] leading-relaxed italic">{question.modelAnswer}</p>
           </div>
 
           <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#3e3e3e]">
-            <p className="text-xs font-semibold text-[#a0a0a0] mb-2">Key Points to Cover:</p>
+            <p className="text-xs font-semibold text-[#a0a0a0] mb-2">✅ Key Points to Mention:</p>
             <ul className="space-y-2">
               {question.keyPoints.map((point, idx) => (
                 <li key={idx} className="flex items-start gap-2">
@@ -184,7 +212,7 @@ function QuestionCard({
           </div>
 
           <div className="bg-[#1e1e1e] rounded-lg p-3 border border-[#3e3e3e]">
-            <p className="text-xs font-semibold text-[#a0a0a0] mb-2">💡 Delivery Tip:</p>
+            <p className="text-xs font-semibold text-[#a0a0a0] mb-2">🎯 Delivery Tip:</p>
             <p className="text-sm text-[#d4d4d4] leading-relaxed">{question.deliveryTip}</p>
           </div>
         </div>

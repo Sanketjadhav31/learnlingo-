@@ -187,7 +187,7 @@ export function LessonPanel({
       coreTasks: [
         (day.speakingTask?.text || (day.speakingTask as any)?.prompt) && isValidContent(day.speakingTask.text || (day.speakingTask as any).prompt) ? `Speaking: Read-aloud practice text` : null,
         day.writingTask?.prompt && isValidContent(day.writingTask.prompt) ? `Writing: ${day.writingTask.prompt}` : null,
-        (day.conversationTask?.items || []).length > 0 ? `Conversation: ${day.conversationTask.items.length} Hindi sentences to translate` : null,
+        (day.conversationTask?.items || []).length > 0 ? `Interview Conversation: ${day.conversationTask.items.length} professional Hindi sentences to translate` : null,
       ].filter(Boolean).join("\n\n") || "Core tasks not available.",
       sentences: (day.sentencePractice?.items || [])
         .filter((s) => isValidContent(s.sentence || (s as any).prompt))
@@ -487,14 +487,19 @@ export function LessonPanel({
             )}
             {(day.conversationTask?.items || []).length > 0 && (
               <div className="rounded-lg border border-purple-400/20 bg-purple-500/10 p-3">
-                <div className="text-xs text-purple-300 font-semibold mb-3">💬 Conversation Practice</div>
-                <div className="text-xs text-white/60 mb-2">Translate these Hindi sentences to English:</div>
+                <div className="text-xs text-purple-300 font-semibold mb-3">💬 Interview Conversation Practice</div>
+                <div className="text-xs text-white/60 mb-3">
+                  🎯 Imagine you're in an interview/meeting. Translate these Hindi sentences to English and speak them naturally, as if responding to an interviewer.
+                </div>
                 <div className="space-y-2">
                   {day.conversationTask.items.map((item, i) => (
-                    <div key={i} className="text-sm text-amber-200 bg-amber-500/10 border border-amber-400/20 rounded px-2 py-1.5">
-                      {item.k}. {item.hindiSentence}
+                    <div key={i} className="text-sm text-amber-200 bg-amber-500/10 border border-amber-400/20 rounded px-3 py-2">
+                      <span className="text-white/50 font-mono">{item.k}.</span> {item.hindiSentence}
                     </div>
                   ))}
+                </div>
+                <div className="mt-3 text-xs text-white/50 italic">
+                  💡 Tip: Practice speaking these aloud as if you're in a real interview conversation
                 </div>
               </div>
             )}

@@ -146,11 +146,8 @@ function buildSubmissionText(data: SubmissionData, day: DayContent): string {
     .filter(h => h);
   text += `5. Hindi to English Translation:\n${hindiLines.join("\n")}\n\n`;
   
-  // Questions - only include non-empty ones
-  const questionLines = data.questions
-    .map((q, i) => q && q.trim() ? `${i + 1}. ${q}` : "")
-    .filter(q => q);
-  text += `6. Questions:\n${questionLines.join("\n")}\n\n`;
+  // Questions - read-only section, no submission needed
+  text += `6. Questions:\nRead-only section (no submission required)\n\n`;
   
   // Listening - only include non-empty ones
   const listeningLines = data.listening
@@ -446,20 +443,43 @@ export function SubmissionEditor(props: {
       <div className="flex-1 min-h-0 overflow-auto pr-1 sm:pr-2 custom-scrollbar">
         <div className="rounded-lg border border-white/10 bg-black/10 p-4">
           {activeSection === "writing" && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-white">Writing Task</div>
                 <ResetButton onReset={() => resetField("writing")} label="Reset" className="text-[10px] px-2 py-1" />
               </div>
-              <div className="text-sm text-white/70 bg-black/20 p-3 rounded border border-white/5 max-h-32 overflow-y-auto leading-relaxed">
-                {formatPromptText(props.day.writingTask.prompt)}
+              
+              {/* Prompt */}
+              <div className="rounded-lg border border-indigo-400/30 bg-indigo-500/10 p-3">
+                <div className="text-xs text-indigo-300 font-semibold mb-2">📝 Your Task:</div>
+                <div className="text-sm text-white/85 leading-relaxed">
+                  {formatPromptText(props.day.writingTask.prompt)}
+                </div>
               </div>
-              <textarea
-                value={formData.writing}
-                onChange={(e) => updateFormData("writing", e.target.value)}
-                className="w-full h-64 resize-none rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-white/90 outline-none focus:border-white/20"
-                placeholder="Write your answer here..."
-              />
+
+              {/* Model Answer */}
+              {props.day.writingTask.modelAnswer && (
+                <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 p-3">
+                  <div className="text-xs text-emerald-300 font-semibold mb-2">✅ Example Answer:</div>
+                  <div className="text-sm text-white/85 leading-relaxed italic">
+                    {formatPromptText(props.day.writingTask.modelAnswer)}
+                  </div>
+                  <div className="text-xs text-white/50 mt-2">
+                    💡 Use this as a guide. Write your own answer in your own words.
+                  </div>
+                </div>
+              )}
+
+              {/* Answer Input */}
+              <div>
+                <div className="text-xs text-white/60 mb-2">Your Answer:</div>
+                <textarea
+                  value={formData.writing}
+                  onChange={(e) => updateFormData("writing", e.target.value)}
+                  className="w-full h-48 resize-none rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-white/90 outline-none focus:border-white/20 leading-relaxed"
+                  placeholder="Write your answer here... (4-6 sentences)"
+                />
+              </div>
             </div>
           )}
           
@@ -611,20 +631,35 @@ export function SubmissionEditor(props: {
           )}
           
           {activeSection === "questions" && (
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-white">Questions ({template.questionCount} questions)</div>
-                <ResetButton onReset={() => resetField("questions")} label="Reset" className="text-[10px] px-2 py-1" />
+              </div>
+              <div className="text-xs text-white/60 bg-purple-500/10 border border-purple-400/30 rounded p-2 mb-3">
+                💬 Read these interview/meeting conversation examples and learn the correct grammar. No need to write answers - just read and understand!
               </div>
               {props.day.questions.items.slice(0, template.questionCount).map((item, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="text-xs text-white/60">{item.idx}. {item.prompt}</div>
-                  <input
-                    value={formData.questions[i] || ""}
-                    onChange={(e) => updateArrayItem("questions", i, e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white/90 outline-none focus:border-white/20"
-                    placeholder="Your answer..."
-                  />
+                <div key={i} className="space-y-3">
+                  {/* Question */}
+                  <div className="rounded-lg border border-purple-400/20 bg-purple-500/10 p-4">
+                    <div className="flex items-start gap-2 mb-3">
+                      <span className="text-purple-300 font-semibold flex-shrink-0">{item.idx}.</span>
+                      <div className="text-sm text-white/85 leading-relaxed font-medium">{formatPromptText(item.prompt)}</div>
+                    </div>
+                    
+                    {/* Correct Answer */}
+                    {item.correctAnswer && (
+                      <div className="mt-3 pt-3 border-t border-purple-400/20">
+                        <div className="flex items-start gap-2">
+                          <span className="text-emerald-300 text-lg flex-shrink-0">✅</span>
+                          <div>
+                            <div className="text-xs text-emerald-300 font-semibold mb-1">Correct Answer:</div>
+                            <div className="text-sm text-white/90 leading-relaxed">{formatPromptText(item.correctAnswer)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

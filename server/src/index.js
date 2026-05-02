@@ -352,6 +352,16 @@ async function main() {
       console.log(`   Pronunciation[0].hindiMeaning: "${pronSample.hindiMeaning}"`);
       console.log(`   Pronunciation[0].examples: ${pronSample.examples?.length || 0} items`);
     }
+    
+    // Debug questions data
+    const questionsCount = state.dayContent?.questions?.items?.length || 0;
+    const questionSample = state.dayContent?.questions?.items?.[0];
+    console.log(`   Questions count: ${questionsCount}`);
+    if (questionSample) {
+      console.log(`   Question[0].idx: ${questionSample.idx}`);
+      console.log(`   Question[0].prompt: "${questionSample.prompt?.substring(0, 60)}..."`);
+      console.log(`   Question[0].correctAnswer: ${questionSample.correctAnswer ? `"${questionSample.correctAnswer.substring(0, 60)}..."` : 'MISSING ❌'}`);
+    }
 
 
 
@@ -1204,10 +1214,10 @@ async function main() {
   });
 
   app.listen(PORT, () => {
-    
-
-
-    
+    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📡 API endpoints ready`);
+    console.log(`✓ MongoDB: ${mongoConn.enabled ? 'Connected' : 'Disabled (using file storage)'}`);
+    console.log(`\n`);
   });
 }
 

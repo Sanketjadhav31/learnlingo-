@@ -39,6 +39,7 @@ const HindiTranslationItemSchema = z.object({
 const QuestionItemSchema = z.object({
   idx: z.number().int().min(1),
   prompt: z.string().min(1),
+  correctAnswer: z.string().min(1),
 });
 
 const ListeningQuestionSchema = z.object({
@@ -86,6 +87,7 @@ const DayContentSchema = z.object({
   }),
   writingTask: z.object({
     prompt: z.string().min(1),
+    modelAnswer: z.string().optional(),
     requiredIdiom: z.string().min(1),
     requiredPhrasal: z.string().min(1),
   }),
